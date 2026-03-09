@@ -2,10 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import type { Soldier } from '@/lib/types';
-import { BRANCH_COLOR_MAP } from '@/lib/constants';
-import { formatDateEnglish, getLocationDisplay } from '@/lib/soldiers';
 import { Box, Text } from '@/components/ui/primitives';
-import { cn } from '@/lib/cn';
+import { SoldierCard } from './SoldierCard';
 
 interface SoldierPanelProps {
   soldiers: Soldier[];
@@ -52,58 +50,15 @@ export const SoldierPanel = ({
           </Box>
         )}
 
-        {soldiers.map((soldier) => {
-          const isSelected = selectedSoldier?.id === soldier.id;
-          const branchColor = BRANCH_COLOR_MAP[soldier.unit_branch];
-          return (
-            <Box
-              key={soldier.id}
-              ref={isSelected ? selectedRef : null}
-              className={cn(
-                'relative overflow-hidden bg-bg/50 border border-electric/20 rounded-md px-3.5 py-3 cursor-pointer transition-all duration-150 flex flex-col gap-1 animate-fade-in-fast',
-                'hover:border-electric/40 hover:bg-bg-card/80',
-                isSelected &&
-                  'border-gold/60 bg-gold/[0.06] shadow-[0_0_12px_rgba(244,162,97,0.15)]'
-              )}
-              onClick={() => onSoldierSelect(soldier)}
-            >
-              {/* Branch accent bar */}
-              <Box
-                className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l"
-                style={{
-                  background: isSelected
-                    ? '#f4a261'
-                    : (branchColor ?? 'rgba(0,180,216,0.2)'),
-                }}
-              />
-              <Text className="block font-he text-[17px] font-bold text-hebrew [direction:rtl] leading-[1.3]">
-                {soldier.name_he}
-              </Text>
-              <Text className="block text-[13px] text-text font-medium">
-                {soldier.name_en}
-              </Text>
-              <Box className="flex items-center gap-1 mt-0.5 flex-wrap">
-                <Text className="font-mono text-[11px] text-electric uppercase tracking-[0.05em]">
-                  {soldier.rank_en}
-                </Text>
-                {soldier.rank_en && (
-                  <Text className="text-[11px] text-electric/20">·</Text>
-                )}
-                <Text className="text-[11px] text-muted truncate">
-                  {soldier.unit}
-                </Text>
-              </Box>
-              <Box className="flex justify-between items-center flex-wrap gap-1 mt-1">
-                <Text className="font-mono text-[11px] text-muted">
-                  {formatDateEnglish(soldier.date_of_fall)}
-                </Text>
-                <Text className="text-[11px] text-muted truncate max-w-[130px]">
-                  {getLocationDisplay(soldier)}
-                </Text>
-              </Box>
-            </Box>
-          );
-        })}
+        {soldiers.map((soldier) => (
+          <SoldierCard
+            key={soldier.id}
+            soldier={soldier}
+            isSelected={selectedSoldier?.id === soldier.id}
+            onSelect={onSoldierSelect}
+            cardRef={selectedSoldier?.id === soldier.id ? selectedRef : undefined}
+          />
+        ))}
       </Box>
     </Box>
   );

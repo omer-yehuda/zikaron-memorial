@@ -3,7 +3,6 @@
 import type { SoldierStats, UnitBranch } from '@/lib/types';
 import { BRANCHES } from '@/lib/constants';
 import { Box, Text, Label, Inp } from './primitives';
-import { cn } from '@/lib/cn';
 
 interface RightPanelProps {
   stats: SoldierStats;
@@ -11,11 +10,32 @@ interface RightPanelProps {
   onBranchToggle: (b: UnitBranch) => void;
 }
 
-const SectionTitle = ({ children }: { children: string }) => (
-  <Text className="block font-mono text-[9px] text-electric tracking-[0.2em] uppercase mb-2">
+const SectionLabel = ({ children }: { children: string }) => (
+  <Text className="block font-mono text-[9px] text-electric/70 tracking-[0.22em] uppercase mb-3">
     {children}
   </Text>
 );
+
+const statRows = [
+  {
+    key: 'total' as const,
+    label: 'Total Fallen',
+    getValue: (s: SoldierStats) => s.total,
+    cls: 'font-mono font-bold text-[18px] text-gold leading-none',
+  },
+  {
+    key: 'cities' as const,
+    label: 'Cities',
+    getValue: (s: SoldierStats) => s.citiesCount,
+    cls: 'font-mono font-bold text-[13px] text-text',
+  },
+  {
+    key: 'units' as const,
+    label: 'Units',
+    getValue: (s: SoldierStats) => s.unitsCount,
+    cls: 'font-mono font-bold text-[13px] text-text',
+  },
+] as const;
 
 export const RightPanel = ({
   stats,
@@ -29,37 +49,36 @@ export const RightPanel = ({
       as="aside"
       className="w-[220px] bg-glass backdrop-blur-[12px] border-l border-electric/20 flex flex-col p-3 gap-3 overflow-y-auto shrink-0"
     >
-      <Box className="border border-electric/20 rounded-md p-2.5 bg-bg/40">
-        <Box className="text-center py-1">
-          <Text className="block font-mono text-[36px] font-bold text-danger leading-none [text-shadow:0_0_16px_rgba(230,57,70,0.5)]">
-            {stats.daysSinceStart}
+      {/* Days counter */}
+      <Box className="border border-danger/25 rounded-lg p-3 bg-danger/[0.05] text-center">
+        <Text className="block font-mono text-[42px] font-bold text-danger leading-none [text-shadow:0_0_24px_rgba(230,57,70,0.35)]">
+          {stats.daysSinceStart}
+        </Text>
+        <Box className="mt-1.5 flex items-center justify-center gap-1.5">
+          <Box className="h-px flex-1 bg-danger/20" />
+          <Text className="font-mono text-[8px] text-danger/60 tracking-[0.2em] uppercase">
+            Days Since Oct 7
           </Text>
-          <Text className="block font-mono text-[9px] text-muted tracking-[0.15em] mt-0.5">
-            DAYS SINCE OCT 7
-          </Text>
+          <Box className="h-px flex-1 bg-danger/20" />
         </Box>
       </Box>
 
-      <Box className="border border-electric/20 rounded-md p-2.5 bg-bg/40">
-        <SectionTitle>Statistics</SectionTitle>
-        {(
-          [
-            ['Total Fallen', stats.total, 'text-[16px] text-gold'],
-            ['Cities', stats.citiesCount, 'text-[13px] text-text'],
-            ['Units', stats.unitsCount, 'text-[13px] text-text'],
-          ] as const
-        ).map(([label, val, cls]) => (
-          <Box key={label} className="flex justify-between items-baseline mb-1.5">
-            <Text className="text-[11px] text-muted">{label}</Text>
-            <Text className={cn('font-mono font-bold', cls)}>
-              {val.toLocaleString()}
-            </Text>
-          </Box>
-        ))}
+      {/* Statistics */}
+      <Box className="border border-electric/20 rounded-lg p-3 bg-bg/40">
+        <SectionLabel>Statistics</SectionLabel>
+        <Box className="flex flex-col gap-2.5">
+          {statRows.map(({ key, label, getValue, cls }) => (
+            <Box key={key} className="flex justify-between items-center">
+              <Text className="text-[11px] text-muted">{label}</Text>
+              <Text className={cls}>{getValue(stats).toLocaleString()}</Text>
+            </Box>
+          ))}
+        </Box>
       </Box>
 
-      <Box className="border border-electric/20 rounded-md p-2.5 bg-bg/40">
-        <SectionTitle>Branch Filter</SectionTitle>
+      {/* Branch Filter */}
+      <Box className="border border-electric/20 rounded-lg p-3 bg-bg/40 flex-1">
+        <SectionLabel>Branch Filter</SectionLabel>
         <Box className="flex flex-col gap-1.5">
           {BRANCHES.map((branch) => {
             const active = branchFilters.has(branch.id);
@@ -68,51 +87,45 @@ export const RightPanel = ({
             return (
               <Label
                 key={branch.id}
-                className={cn(
-                  'flex items-center gap-2 cursor-pointer p-1 rounded transition-colors duration-150',
-                  !active && 'hover:bg-white/[0.04]'
-                )}
+                className={
+                  active
+                    ? 'flex flex-col gap-1.5 cursor-pointer p-2 rounded-md border border-white/[0.07] bg-white/[0.04] transition-all duration-150'
+                    : 'flex flex-col gap-1.5 cursor-pointer p-2 rounded-md border border-transparent transition-all duration-150 hover:bg-white/[0.03]'
+                }
               >
-                <Inp
-                  type="checkbox"
-                  className="hidden"
-                  checked={active}
-                  onChange={() => onBranchToggle(branch.id)}
-                />
-                <Box
-                  className="w-2 h-2 rounded-full shrink-0 transition-colors duration-150"
-                  style={{
-                    background: active
-                      ? branch.color
-                      : 'rgba(168,178,193,0.3)',
-                  }}
-                />
-                <Text
-                  className={cn(
-                    'text-[12px] flex-1 select-none',
-                    active ? 'text-text' : 'text-muted'
-                  )}
-                >
-                  {branch.label_en}
-                </Text>
-                <Text
-                  className={cn(
-                    'font-mono text-[11px]',
-                    active ? 'text-text' : 'text-muted'
-                  )}
-                >
-                  {count}
-                </Text>
-                <Box
-                  className="h-1 rounded-sm transition-all duration-300 mt-0.5"
-                  style={{
-                    width: `${pct}%`,
-                    background: active
-                      ? branch.color
-                      : 'rgba(168,178,193,0.2)',
-                    minWidth: count > 0 ? '4px' : '0',
-                  }}
-                />
+                <Box className="flex items-center gap-2">
+                  <Inp
+                    type="checkbox"
+                    className="hidden"
+                    checked={active}
+                    onChange={() => onBranchToggle(branch.id)}
+                  />
+                  <Box
+                    className="w-2.5 h-2.5 rounded-full shrink-0 transition-all duration-150"
+                    style={{
+                      background: active ? branch.color : 'rgba(168,178,193,0.25)',
+                      boxShadow: active ? `0 0 6px ${branch.color}80` : 'none',
+                    }}
+                  />
+                  <Text className={active ? 'text-[12px] flex-1 select-none text-text' : 'text-[12px] flex-1 select-none text-muted'}>
+                    {branch.label_en}
+                  </Text>
+                  <Text className={active ? 'font-mono text-[11px] font-bold text-text' : 'font-mono text-[11px] text-muted/50'}>
+                    {count}
+                  </Text>
+                </Box>
+
+                {/* progress bar */}
+                <Box className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                  <Box
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${pct}%`,
+                      background: active ? branch.color : 'rgba(168,178,193,0.12)',
+                      minWidth: count > 0 ? '6px' : '0',
+                    }}
+                  />
+                </Box>
               </Label>
             );
           })}
