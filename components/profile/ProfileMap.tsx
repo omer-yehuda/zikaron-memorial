@@ -4,11 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import type { Soldier } from '@/lib/types';
 import { TILE_URL, TILE_ATTRIBUTION } from '@/lib/constants';
-import styles from './ProfileMap.module.css';
-
-interface ProfileMapProps {
-  soldier: Soldier;
-}
+import { Box, Text } from '@/components/ui/primitives';
 
 const pinIcon = L.divIcon({
   className: '',
@@ -24,28 +20,46 @@ const pinIcon = L.divIcon({
   popupAnchor: [0, -34],
 });
 
-export const ProfileMap = ({ soldier }: ProfileMapProps) => (
-  <div className={styles.wrapper}>
-    <MapContainer
-      center={[soldier.coordinates.lat, soldier.coordinates.lng]}
-      zoom={10}
-      className={styles.map}
-      zoomControl={false}
-      dragging={false}
-      scrollWheelZoom={false}
-    >
-      <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
-      <Marker
-        position={[soldier.coordinates.lat, soldier.coordinates.lng]}
-        icon={pinIcon}
+interface ProfileMapProps {
+  soldier: Soldier;
+}
+
+export const ProfileMap = ({ soldier }: ProfileMapProps) => {
+  if (!soldier.coordinates) {
+    return (
+      <Box className="rounded-lg overflow-hidden border border-electric/20 h-[220px] flex items-center justify-center bg-bg-card/60 flex-col gap-2">
+        <Text className="text-[24px]">📍</Text>
+        <Text className="text-muted text-[13px]">Location not recorded</Text>
+        <Text className="font-he text-[12px] text-muted/60 [direction:rtl]">
+          מיקום לא ידוע
+        </Text>
+      </Box>
+    );
+  }
+
+  return (
+    <Box className="rounded-lg overflow-hidden border border-electric/20 h-[220px]">
+      <MapContainer
+        center={[soldier.coordinates.lat, soldier.coordinates.lng]}
+        zoom={10}
+        className="w-full h-full"
+        zoomControl={false}
+        dragging={false}
+        scrollWheelZoom={false}
       >
-        <Popup>
-          <div className="popup-card">
-            <div className="popup-name-he">{soldier.name_he}</div>
-            <div className="popup-location">📍 {soldier.location_name}</div>
-          </div>
-        </Popup>
-      </Marker>
-    </MapContainer>
-  </div>
-);
+        <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+        <Marker
+          position={[soldier.coordinates.lat, soldier.coordinates.lng]}
+          icon={pinIcon}
+        >
+          <Popup>
+            <div className="popup-card">
+              <div className="popup-name-he">{soldier.name_he}</div>
+              <div className="popup-location">📍 {soldier.location_name}</div>
+            </div>
+          </Popup>
+        </Marker>
+      </MapContainer>
+    </Box>
+  );
+};

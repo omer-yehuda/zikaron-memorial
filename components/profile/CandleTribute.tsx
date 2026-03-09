@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import styles from './CandleTribute.module.css';
+import { Box, Text, Btn } from '@/components/ui/primitives';
 
 interface CandleTributeProps {
   soldierId: string;
@@ -16,17 +16,19 @@ export const CandleTribute = ({ soldierId }: CandleTributeProps) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const key = RATE_LIMIT_KEY(soldierId);
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const ts = parseInt(stored, 10);
-      if (Date.now() - ts < RATE_LIMIT_MS) setAlreadyLit(true);
+    const stored = localStorage.getItem(RATE_LIMIT_KEY(soldierId));
+    if (stored && Date.now() - parseInt(stored, 10) < RATE_LIMIT_MS) {
+      setAlreadyLit(true);
     }
 
-    fetch(`/api/candles?id=${soldierId}`)
+    const controller = new AbortController();
+    fetch(`/api/candles?id=${soldierId}`, { signal: controller.signal })
       .then((r) => r.json())
-      .then((data: { count: number }) => setCount(data.count))
-      .catch(() => setCount(0));
+      .then((d: { count: number }) => setCount(d.count))
+      .catch((e: unknown) => {
+        if ((e as { name?: string }).name !== 'AbortError') setCount(0);
+      });
+    return () => controller.abort();
   }, [soldierId]);
 
   const handleLight = async () => {
@@ -50,16 +52,15 @@ export const CandleTribute = ({ soldierId }: CandleTributeProps) => {
   };
 
   return (
-    <div className={styles.tribute}>
+    <Box className="bg-bg-card border border-electric/20 rounded-xl p-6 flex flex-col items-center gap-3 text-center">
       <svg
-        className={styles.candleSvg}
+        className="animate-glow"
         width="40"
         height="60"
         viewBox="0 0 40 60"
       >
-        {/* Flame */}
         <ellipse
-          className={styles.flame}
+          className="animate-candle-flicker [transform-origin:center_bottom]"
           cx="20"
           cy="12"
           rx="6"
@@ -68,29 +69,47 @@ export const CandleTribute = ({ soldierId }: CandleTributeProps) => {
           opacity="0.9"
         />
         <ellipse cx="20" cy="14" rx="3" ry="6" fill="#ffd700" opacity="0.8" />
-        {/* Wick */}
         <line x1="20" y1="22" x2="20" y2="26" stroke="#333" strokeWidth="1.5" />
-        {/* Candle body */}
-        <rect x="13" y="26" width="14" height="30" rx="2" fill="#e8e0d0" opacity="0.9" />
-        <rect x="13" y="26" width="4" height="30" rx="1" fill="#d4c9b5" opacity="0.5" />
+        <rect
+          x="13"
+          y="26"
+          width="14"
+          height="30"
+          rx="2"
+          fill="#e8e0d0"
+          opacity="0.9"
+        />
+        <rect
+          x="13"
+          y="26"
+          width="4"
+          height="30"
+          rx="1"
+          fill="#d4c9b5"
+          opacity="0.5"
+        />
       </svg>
 
-      <div className={styles.countNum}>{count ?? '...'}</div>
-      <div className={styles.countText}>נרות הודלקו לזכרו/ה</div>
+      <Text className="block font-mono text-[28px] font-bold text-gold leading-none">
+        {count ?? '...'}
+      </Text>
+      <Text className="block font-he text-[16px] text-hebrew [direction:rtl]">
+        נרות הודלקו לזכרו/ה
+      </Text>
 
-      <button
-        className={styles.btn}
+      <Btn
+        className="bg-gold/10 border border-gold/50 text-gold px-5 py-2 rounded-md text-[14px] font-he [direction:rtl] transition-all duration-200 hover:enabled:bg-gold/20 hover:enabled:shadow-[0_0_12px_rgba(244,162,97,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={handleLight}
         disabled={alreadyLit || loading}
       >
         🕯 הדלק נר לזכרו/ה
-      </button>
+      </Btn>
 
       {alreadyLit && (
-        <div className={styles.alreadyLit}>
+        <Text className="font-mono text-[12px] text-muted">
           הדלקת נר היום · You have already lit a candle today
-        </div>
+        </Text>
       )}
-    </div>
+    </Box>
   );
 };

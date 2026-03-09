@@ -83,6 +83,9 @@ export const formatDateEnglish = (dateStr: string): string => {
   return date.toLocaleDateString('en-US', options);
 };
 
+export const getLocationDisplay = (soldier: Soldier): string =>
+  soldier.coordinates ? `📍 ${soldier.location_name}` : '📍 Unknown location';
+
 export const getDaysSinceStart = (date?: Date): number => {
   const target = date ?? new Date();
   const diff = target.getTime() - CONFLICT_START_DATE.getTime();

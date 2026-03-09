@@ -15,7 +15,7 @@ import { Header } from './ui/Header';
 import { SoldierPanel } from './panel/SoldierPanel';
 import { RightPanel } from './ui/RightPanel';
 import { TimelineBar } from './timeline/TimelineBar';
-import styles from './MapApp.module.css';
+import { Box } from './ui/primitives';
 
 const MapView = dynamic(
   () => import('./map/MapView').then((m) => ({ default: m.MapView })),
@@ -72,25 +72,31 @@ export default function MapApp() {
     });
   }, [selectedDate]);
 
-  const handleDateChange = useCallback((dateOrUpdater: Date | ((prev: Date) => Date)) => {
-    setSelectedDate((prev) => {
-      const next = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
-      if (next >= TIMELINE_END) {
-        setIsPlaying(false);
-        return TIMELINE_END;
-      }
-      return next;
-    });
-  }, []);
+  const handleDateChange = useCallback(
+    (dateOrUpdater: Date | ((prev: Date) => Date)) => {
+      setSelectedDate((prev) => {
+        const next =
+          typeof dateOrUpdater === 'function'
+            ? dateOrUpdater(prev)
+            : dateOrUpdater;
+        if (next >= TIMELINE_END) {
+          setIsPlaying(false);
+          return TIMELINE_END;
+        }
+        return next;
+      });
+    },
+    []
+  );
 
   return (
-    <div className={styles.app}>
+    <Box className="flex flex-col h-screen w-screen overflow-hidden bg-bg">
       <Header
         totalFallen={stats.total}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
-      <div className={styles.mainRow}>
+      <Box className="flex flex-1 overflow-hidden min-h-0">
         <SoldierPanel
           soldiers={visibleSoldiers}
           selectedSoldier={selectedSoldier}
@@ -106,7 +112,7 @@ export default function MapApp() {
           branchFilters={branchFilters}
           onBranchToggle={handleBranchToggle}
         />
-      </div>
+      </Box>
       <TimelineBar
         selectedDate={selectedDate}
         onDateChange={handleDateChange}
@@ -117,6 +123,6 @@ export default function MapApp() {
         playSpeed={playSpeed}
         onSpeedChange={setPlaySpeed}
       />
-    </div>
+    </Box>
   );
 }

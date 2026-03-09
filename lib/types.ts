@@ -9,7 +9,7 @@ export interface Soldier {
   date_of_birth: string;
   date_of_fall: string;
   location_name: string;
-  coordinates: { lat: number; lng: number };
+  coordinates?: { lat: number; lng: number } | null;
   city_of_origin: string;
   photo_url?: string;
   bio_he?: string;

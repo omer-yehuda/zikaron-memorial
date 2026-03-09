@@ -41,9 +41,10 @@ describe('API soldiers - library functions', () => {
     expect(filterByBranch(all, []).length).toBe(all.length);
   });
 
-  it('soldier data has valid coordinates for all entries', () => {
+  it('soldier data has valid coordinates for entries that have them', () => {
     const soldiers = getAllSoldiers();
     for (const s of soldiers) {
+      if (!s.coordinates) continue;
       expect(s.coordinates.lat).toBeGreaterThan(20);
       expect(s.coordinates.lat).toBeLessThan(40);
       expect(s.coordinates.lng).toBeGreaterThan(30);

@@ -1,7 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import type { Soldier } from '@/lib/types';
@@ -13,7 +20,7 @@ import {
   BRANCH_COLOR_MAP,
 } from '@/lib/constants';
 import { formatDateEnglish } from '@/lib/soldiers';
-import styles from './MapView.module.css';
+import { Box, Text } from '@/components/ui/primitives';
 
 const makePinIcon = (selected: boolean, color: string): L.DivIcon =>
   L.divIcon({
@@ -30,14 +37,10 @@ const makePinIcon = (selected: boolean, color: string): L.DivIcon =>
     popupAnchor: [0, -34],
   });
 
-interface FlyToProps {
-  soldier: Soldier | null;
-}
-
-const FlyTo = ({ soldier }: FlyToProps) => {
+const FlyTo = ({ soldier }: { soldier: Soldier | null }) => {
   const map = useMap();
   useEffect(() => {
-    if (!soldier) return;
+    if (!soldier?.coordinates) return;
     map.flyTo([soldier.coordinates.lat, soldier.coordinates.lng], 11, {
       duration: 1.2,
     });
@@ -45,11 +48,11 @@ const FlyTo = ({ soldier }: FlyToProps) => {
   return null;
 };
 
-interface CoordTrackerProps {
+const CoordTracker = ({
+  onCenter,
+}: {
   onCenter: (lat: number, lng: number) => void;
-}
-
-const CoordTracker = ({ onCenter }: CoordTrackerProps) => {
+}) => {
   useMapEvents({
     move(e) {
       const c = e.target.getCenter();
@@ -65,22 +68,30 @@ interface MapViewProps {
   onSoldierSelect: (s: Soldier) => void;
 }
 
-export const MapView = ({ soldiers, selectedSoldier, onSoldierSelect }: MapViewProps) => {
+export const MapView = ({
+  soldiers,
+  selectedSoldier,
+  onSoldierSelect,
+}: MapViewProps) => {
   const [center, setCenter] = useState<[number, number]>(MAP_CENTER);
+  const mappedSoldiers = useMemo(() => soldiers.filter((s) => s.coordinates), [soldiers]);
 
   return (
-    <div className={styles.mapWrapper}>
-      <div className={styles.hudFrame} />
-      <div className={`${styles.hudCorner} ${styles.hudCornerTL}`} />
-      <div className={`${styles.hudCorner} ${styles.hudCornerTR}`} />
-      <div className={`${styles.hudCorner} ${styles.hudCornerBL}`} />
-      <div className={`${styles.hudCorner} ${styles.hudCornerBR}`} />
-      <div className={styles.tacticalLabel}>TACTICAL OVERLAY · IDF MEMORIAL</div>
+    <Box className="flex-1 relative overflow-hidden">
+      {/* HUD frame */}
+      <Box className="absolute inset-0 pointer-events-none z-[400] border border-electric/15" />
+      <Box className="absolute top-2 left-2 w-5 h-5 border-t-2 border-l-2 border-electric z-[500] pointer-events-none" />
+      <Box className="absolute top-2 right-2 w-5 h-5 border-t-2 border-r-2 border-electric z-[500] pointer-events-none" />
+      <Box className="absolute bottom-9 left-2 w-5 h-5 border-b-2 border-l-2 border-electric z-[500] pointer-events-none" />
+      <Box className="absolute bottom-9 right-2 w-5 h-5 border-b-2 border-r-2 border-electric z-[500] pointer-events-none" />
+      <Text className="absolute top-3 right-4 font-mono text-[9px] text-electric/50 tracking-[0.15em] z-[500] pointer-events-none">
+        TACTICAL OVERLAY · IDF MEMORIAL
+      </Text>
 
       <MapContainer
         center={MAP_CENTER}
         zoom={MAP_ZOOM_DEFAULT}
-        className={styles.mapContainer}
+        className="w-full h-full"
         zoomControl={false}
       >
         <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
@@ -88,13 +99,13 @@ export const MapView = ({ soldiers, selectedSoldier, onSoldierSelect }: MapViewP
         <CoordTracker onCenter={(lat, lng) => setCenter([lat, lng])} />
 
         <MarkerClusterGroup chunkedLoading maxClusterRadius={50}>
-          {soldiers.map((soldier) => {
+          {mappedSoldiers.map((soldier) => {
             const isSelected = selectedSoldier?.id === soldier.id;
             const color = BRANCH_COLOR_MAP[soldier.unit_branch] ?? '#f4a261';
             return (
               <Marker
                 key={soldier.id}
-                position={[soldier.coordinates.lat, soldier.coordinates.lng]}
+                position={[soldier.coordinates!.lat, soldier.coordinates!.lng]}
                 icon={makePinIcon(isSelected, color)}
                 eventHandlers={{ click: () => onSoldierSelect(soldier) }}
               >
@@ -103,13 +114,18 @@ export const MapView = ({ soldiers, selectedSoldier, onSoldierSelect }: MapViewP
                     <div className="popup-name-he">{soldier.name_he}</div>
                     <div className="popup-name-en">{soldier.name_en}</div>
                     <div className="popup-rank">
-                      {soldier.rank_en} · {soldier.unit}
+                      {soldier.rank_en}
+                      {soldier.rank_en && ' · '}
+                      {soldier.unit}
                     </div>
                     <div className="popup-date">
                       {formatDateEnglish(soldier.date_of_fall)}
                     </div>
                     <div className="popup-location">📍 {soldier.location_name}</div>
-                    <a href={`/soldiers/${soldier.id}`} className="popup-link">
+                    <a
+                      href={`/soldiers/${soldier.id}`}
+                      className="popup-link"
+                    >
                       לפרופיל המלא →
                     </a>
                   </div>
@@ -120,9 +136,9 @@ export const MapView = ({ soldiers, selectedSoldier, onSoldierSelect }: MapViewP
         </MarkerClusterGroup>
       </MapContainer>
 
-      <div className={styles.coordsReadout}>
+      <Text className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-bg/80 border border-electric/20 rounded px-2.5 py-0.5 font-mono text-[10px] text-electric z-[500] pointer-events-none whitespace-nowrap">
         {`${center[0].toFixed(4)}°N · ${center[1].toFixed(4)}°E`}
-      </div>
-    </div>
+      </Text>
+    </Box>
   );
 };
