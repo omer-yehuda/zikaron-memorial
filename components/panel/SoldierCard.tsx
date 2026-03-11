@@ -9,7 +9,7 @@ interface SoldierCardProps {
   soldier: Soldier;
   isSelected: boolean;
   onSelect: (s: Soldier) => void;
-  cardRef?: React.RefObject<HTMLDivElement>;
+  cardRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const baseCard =

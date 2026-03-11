@@ -11,8 +11,9 @@ import { CandleTribute } from '@/components/profile/CandleTribute';
 import { ProfileMapClient } from '@/components/profile/ProfileMapClient';
 import { Box, Text, Anchor } from '@/components/ui/primitives';
 
+// Next.js 15+: params is a Promise
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export const generateStaticParams = () =>
@@ -21,7 +22,8 @@ export const generateStaticParams = () =>
 export const generateMetadata = async ({
   params,
 }: PageProps): Promise<Metadata> => {
-  const soldier = getSoldierById(params.id);
+  const { id } = await params;
+  const soldier = getSoldierById(id);
   if (!soldier) return { title: 'Soldier Not Found' };
 
   return {
@@ -35,8 +37,9 @@ export const generateMetadata = async ({
   };
 };
 
-export default function SoldierProfilePage({ params }: PageProps) {
-  const soldier = getSoldierById(params.id);
+export default async function SoldierProfilePage({ params }: PageProps) {
+  const { id } = await params;
+  const soldier = getSoldierById(id);
   if (!soldier) notFound();
 
   const bioHe =

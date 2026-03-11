@@ -1,23 +1,16 @@
+'use client';
+
 import dynamic from 'next/dynamic';
+import { Box, Text } from '@/components/ui/primitives';
 
 const MapApp = dynamic(() => import('@/components/MapApp'), {
   ssr: false,
   loading: () => (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: '#0a0a0f',
-        color: '#f4a261',
-        fontFamily: 'JetBrains Mono, monospace',
-        fontSize: '14px',
-        letterSpacing: '0.1em',
-      }}
-    >
-      טוען מפה... LOADING MAP...
-    </div>
+    <Box className="flex items-center justify-center h-screen bg-bg">
+      <Text className="font-mono text-[14px] text-gold tracking-[0.1em]">
+        טוען מפה... LOADING MAP...
+      </Text>
+    </Box>
   ),
 });
 

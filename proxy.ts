@@ -7,7 +7,7 @@ const MAX_QUERY_LENGTH = 1024;
  * Edge middleware — runs before every API request.
  * Rejects malformed or oversized requests before they reach route handlers.
  */
-export function middleware(req: NextRequest): NextResponse {
+export function proxy(req: NextRequest): NextResponse {
   const { pathname, search } = req.nextUrl;
 
   // Reject oversized URLs
