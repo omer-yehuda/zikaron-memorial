@@ -1,27 +1,50 @@
 import { createHash } from 'crypto';
-import { getDb } from './db';
+import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
 
-// ─── In-memory fallback (resets on cold start / no DATABASE_URL) ─────────────
+// ─── In-memory fallback (no AWS credentials configured) ───────────────────────
 const memCount = new Map<string, number>();
 const memVotes = new Map<string, Set<string>>();
 
+// ─── DynamoDB client (lazy, singleton) ───────────────────────────────────────
+let _docClient: DynamoDBDocumentClient | null = null;
+
+const getDocClient = (): DynamoDBDocumentClient | null => {
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.DYNAMO_TABLE) return null;
+  if (!_docClient) {
+    const ddb = new DynamoDBClient({
+      region: process.env.AWS_REGION ?? 'us-east-1',
+    });
+    _docClient = DynamoDBDocumentClient.from(ddb, {
+      marshallOptions: { removeUndefinedValues: true },
+    });
+  }
+  return _docClient;
+};
+
+const TABLE = (): string => process.env.DYNAMO_TABLE!;
+const today = (): string => new Date().toISOString().slice(0, 10);
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** SHA-256 of the raw client IP — never stored as plaintext (GDPR). */
+/** SHA-256 of raw client IP — never stored in plaintext (GDPR). */
 export const hashClient = (raw: string): string =>
   createHash('sha256').update(raw).digest('hex');
-
-const today = (): string => new Date().toISOString().slice(0, 10);
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const getCount = async (soldierId: string): Promise<number> => {
-  const db = getDb();
+  const db = getDocClient();
   if (db) {
-    const rows = await db`
-      SELECT count FROM candle_counts WHERE soldier_id = ${soldierId}
-    `;
-    return (rows[0]?.count as number) ?? 0;
+    const res = await db.send(
+      new GetCommand({ TableName: TABLE(), Key: { PK: `COUNT#${soldierId}` } })
+    );
+    return (res.Item?.count as number) ?? 0;
   }
   return memCount.get(soldierId) ?? 0;
 };
@@ -30,15 +53,15 @@ export const hasVotedToday = async (
   soldierId: string,
   clientHash: string
 ): Promise<boolean> => {
-  const db = getDb();
+  const db = getDocClient();
   if (db) {
-    const rows = await db`
-      SELECT 1 FROM candle_votes
-      WHERE soldier_id  = ${soldierId}
-        AND client_hash = ${clientHash}
-        AND vote_date   = ${today()}
-    `;
-    return rows.length > 0;
+    const res = await db.send(
+      new GetCommand({
+        TableName: TABLE(),
+        Key: { PK: `VOTE#${soldierId}#${clientHash}#${today()}` },
+      })
+    );
+    return !!res.Item;
   }
   return memVotes.get(`${clientHash}:${soldierId}`)?.has(today()) ?? false;
 };
@@ -47,24 +70,42 @@ export const recordVote = async (
   soldierId: string,
   clientHash: string
 ): Promise<number> => {
-  const db = getDb();
+  const db = getDocClient();
   if (db) {
-    await db`
-      INSERT INTO candle_votes (soldier_id, client_hash, vote_date)
-      VALUES (${soldierId}, ${clientHash}, ${today()})
-      ON CONFLICT DO NOTHING
-    `;
-    const rows = await db`
-      INSERT INTO candle_counts (soldier_id, count)
-      VALUES (${soldierId}, 1)
-      ON CONFLICT (soldier_id)
-      DO UPDATE SET count = candle_counts.count + 1
-      RETURNING count
-    `;
-    return rows[0].count as number;
+    // TTL = tomorrow epoch — DynamoDB auto-deletes old vote records (free cleanup)
+    const ttl = Math.floor((Date.now() + 86_400_000) / 1000);
+
+    try {
+      await db.send(
+        new PutCommand({
+          TableName: TABLE(),
+          Item: { PK: `VOTE#${soldierId}#${clientHash}#${today()}`, ttl },
+          // Atomic guard — prevents double-counting in concurrent requests
+          ConditionExpression: 'attribute_not_exists(PK)',
+        })
+      );
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException) {
+        // Race condition: already voted — return current count without incrementing
+        return getCount(soldierId);
+      }
+      throw err;
+    }
+
+    const res = await db.send(
+      new UpdateCommand({
+        TableName: TABLE(),
+        Key: { PK: `COUNT#${soldierId}` },
+        UpdateExpression: 'ADD #c :inc',
+        ExpressionAttributeNames: { '#c': 'count' },
+        ExpressionAttributeValues: { ':inc': 1 },
+        ReturnValues: 'UPDATED_NEW',
+      })
+    );
+    return (res.Attributes?.count as number) ?? 0;
   }
 
-  // in-memory fallback
+  // In-memory fallback
   const key = `${clientHash}:${soldierId}`;
   const votes = memVotes.get(key) ?? new Set<string>();
   votes.add(today());
