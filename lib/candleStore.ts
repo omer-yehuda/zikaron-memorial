@@ -15,10 +15,10 @@ const memVotes = new Map<string, Set<string>>();
 let _docClient: DynamoDBDocumentClient | null = null;
 
 const getDocClient = (): DynamoDBDocumentClient | null => {
-  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.DYNAMO_TABLE) return null;
+  if (!process.env.DYNAMO_TABLE) return null;
   if (!_docClient) {
     const ddb = new DynamoDBClient({
-      region: process.env.AWS_REGION ?? 'us-east-1',
+      region: process.env.DYNAMO_REGION ?? 'us-east-1',
     });
     _docClient = DynamoDBDocumentClient.from(ddb, {
       marshallOptions: { removeUndefinedValues: true },
