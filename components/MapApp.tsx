@@ -60,7 +60,7 @@ export default function MapApp({ initialSoldiers }: MapAppProps) {
       <main className="flex flex-1 overflow-hidden">
         <SoldierPanel soldiers={visible} selected={selected} onSelect={handleSelect} />
 
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-0">
           <MapView soldiers={visible} selected={selected} onSelect={handleSelect} />
         </div>
       </main>

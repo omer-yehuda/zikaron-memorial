@@ -32,19 +32,13 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
         attributionControl: false,
       });
 
-      // Primary: CartoDB dark — fallback: OpenStreetMap
-      const tileLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        { attribution: '© CartoDB', subdomains: 'abcd', maxZoom: 19 }
-      );
-      tileLayer.on('tileerror', () => {
-        // Swap to OSM if CartoDB fails
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap',
-          maxZoom: 19,
-        }).addTo(map);
-      });
-      tileLayer.addTo(map);
+      // Dark base layer — CartoDB Dark Matter (no {r} placeholder so tiles always resolve)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
+        subdomains: 'abcd',
+        maxZoom: 19,
+        crossOrigin: true,
+      }).addTo(map);
 
       L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -154,5 +148,5 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
     markersRef.current.get(selected.id)?.openPopup();
   }, [selected]);
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  return <div ref={containerRef} style={{ width: '100%', height: '100%', minHeight: '400px' }} />;
 }
