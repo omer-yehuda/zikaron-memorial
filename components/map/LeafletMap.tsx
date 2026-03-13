@@ -32,11 +32,19 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
         attributionControl: false,
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© CartoDB',
-        subdomains: 'abcd',
-        maxZoom: 18,
-      }).addTo(map);
+      // Primary: CartoDB dark — fallback: OpenStreetMap
+      const tileLayer = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        { attribution: '© CartoDB', subdomains: 'abcd', maxZoom: 19 }
+      );
+      tileLayer.on('tileerror', () => {
+        // Swap to OSM if CartoDB fails
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap',
+          maxZoom: 19,
+        }).addTo(map);
+      });
+      tileLayer.addTo(map);
 
       L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -75,32 +83,50 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
         if (markersRef.current.has(soldier.id)) continue;
         const branchColor = BRANCH_LABELS[soldier.branch]?.color ?? '#6b7280';
 
+        // Pentagon points (flat-top, centered at 13,13, radius 11)
+        const pentagonPts = [0,1,2,3,4].map(i => {
+          const a = (Math.PI / 2) + (2 * Math.PI * i) / 5; // start at top
+          return `${13 + 11 * Math.cos(a)},${13 - 11 * Math.sin(a)}`;
+        }).join(' ');
+
         const symbol = soldier.gender === 'female'
-          // Menorah: base + shaft + 3 arms each side
-          ? `<g stroke="white" stroke-width="1.2" fill="none">
-               <line x1="14" y1="7" x2="14" y2="20"/>
-               <line x1="8"  y1="20" x2="20" y2="20"/>
-               <line x1="11" y1="20" x2="11" y2="20"/>
-               <path d="M8 14 Q8 10 14 10 Q20 10 20 14"/>
-               <line x1="8"  y1="10" x2="8"  y2="20"/>
-               <line x1="11" y1="11" x2="11" y2="20"/>
-               <line x1="17" y1="11" x2="17" y2="20"/>
-               <line x1="20" y1="10" x2="20" y2="20"/>
+          // Menorah
+          ? `<g stroke="#fde047" stroke-width="1.3" fill="none">
+               <line x1="13" y1="6"  x2="13" y2="19"/>
+               <line x1="7"  y1="19" x2="19" y2="19"/>
+               <path d="M7 13 Q7 9 13 9 Q19 9 19 13"/>
+               <line x1="7"  y1="9"  x2="7"  y2="19"/>
+               <line x1="10" y1="10" x2="10" y2="19"/>
+               <line x1="16" y1="10" x2="16" y2="19"/>
+               <line x1="19" y1="9"  x2="19" y2="19"/>
              </g>`
           // Star of David
-          : `<polygon points="14,6 17,12 23,12 18,16 20,22 14,18 8,22 10,16 5,12 11,12" fill="white" fill-opacity="0.9" stroke="none"/>`;
+          : `<g>
+               <polygon points="13,5 15.5,10 21,10 16.5,14 18.5,19 13,16 7.5,19 9.5,14 5,10 10.5,10"
+                 fill="#fde047" fill-opacity="0.95" stroke="none"/>
+             </g>`;
 
         const icon = L.divIcon({
           className: '',
           html: `
-            <svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
-              <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22S28 24.5 28 14C28 6.27 21.73 0 14 0z"
-                fill="${branchColor}" fill-opacity="0.9" stroke="rgba(0,0,0,0.6)" stroke-width="1"/>
+            <svg width="26" height="26" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-${soldier.id}" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <!-- Glow halo -->
+              <polygon points="${pentagonPts}" fill="#fde047" fill-opacity="0.25" stroke="none"/>
+              <!-- Pentagon body -->
+              <polygon points="${pentagonPts}"
+                fill="#1d4ed8" stroke="#fde047" stroke-width="1.5"
+                filter="url(#glow-${soldier.id})"/>
               ${symbol}
             </svg>`,
-          iconSize: [28, 36],
-          iconAnchor: [14, 36],
-          popupAnchor: [0, -36],
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
+          popupAnchor: [0, -16],
         });
 
         const marker = L.marker([soldier.lat, soldier.lng], { icon })
