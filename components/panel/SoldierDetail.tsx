@@ -4,6 +4,7 @@ import { X, Flame } from 'lucide-react';
 import { useState } from 'react';
 import type { Soldier } from '@/lib/types';
 import { BRANCH_LABELS } from '@/lib/constants';
+import SoldierAvatar from '@/components/ui/SoldierAvatar';
 
 interface SoldierDetailProps {
   soldier: Soldier;
@@ -46,13 +47,8 @@ export default function SoldierDetail({ soldier, onClose }: SoldierDetailProps) 
 
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-full border-2 border-cyan-400/50 bg-gray-800 flex items-center justify-center mx-auto mb-3 overflow-hidden">
-            {soldier.photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={soldier.photo_url} alt={soldier.name_en} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-3xl text-gray-600">{soldier.gender === 'female' ? '🕎' : '✡'}</span>
-            )}
+          <div className="mx-auto mb-3">
+            <SoldierAvatar soldier={soldier} size="lg" />
           </div>
           <h2 className="text-xl font-bold text-white">{soldier.name_he}</h2>
           <p className="text-sm text-gray-400">{soldier.name_en}</p>

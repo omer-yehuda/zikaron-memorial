@@ -6,6 +6,19 @@ export function getLocalSoldiers(): Soldier[] {
   return soldiersData as Soldier[];
 }
 
+// Unified fetch: DynamoDB when configured, local JSON otherwise
+export async function fetchSoldiers(): Promise<Soldier[]> {
+  if (process.env.DYNAMODB_SOLDIERS_TABLE) {
+    try {
+      const { getAllSoldiers } = await import('@/lib/dynamodb');
+      return getAllSoldiers();
+    } catch {
+      // Fallback to local JSON if DynamoDB unavailable
+    }
+  }
+  return getLocalSoldiers();
+}
+
 export function computeStats(soldiers: Soldier[]): Stats {
   const by_branch: Stats['by_branch'] = {
     infantry: 0, armor: 0, navy: 0, air_force: 0,

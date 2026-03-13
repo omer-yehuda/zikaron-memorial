@@ -86,10 +86,12 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
   // Sync markers — runs when map becomes ready OR soldiers list changes
   useEffect(() => {
     if (!mapReady || !mapRef.current || !clusterRef.current) return;
+    let mounted = true;
     const cluster = clusterRef.current;
 
     (async () => {
       const L = (await import('leaflet')).default;
+      if (!mounted) return;
 
       // Remove stale markers
       const currentIds = new Set(soldiers.map((s) => s.id));
@@ -145,8 +147,10 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
         markersRef.current.set(soldier.id, marker);
       }
     })();
+
+    return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, soldiers]);
+  }, [mapReady, soldiers, onSelect]);
 
   // Pan to selected
   useEffect(() => {

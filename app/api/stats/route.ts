@@ -1,14 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getLocalSoldiers, computeStats } from '@/lib/soldiers';
-import type { Soldier } from '@/lib/types';
-
-async function fetchSoldiers(): Promise<Soldier[]> {
-  if (process.env.DYNAMODB_SOLDIERS_TABLE) {
-    const { getAllSoldiers } = await import('@/lib/dynamodb');
-    return getAllSoldiers();
-  }
-  return getLocalSoldiers();
-}
+import { fetchSoldiers, computeStats } from '@/lib/soldiers';
 
 export async function GET() {
   const soldiers = await fetchSoldiers();

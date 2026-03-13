@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
 
 interface TimelineBarProps {
@@ -45,19 +45,15 @@ export default function TimelineBar({ minDate, maxDate, currentDate, onChange }:
 
   const togglePlay = () => setPlaying((p) => !p);
 
-  // Auto-advance when playing
-  const tick = useCallback(() => {
+  useEffect(() => {
     if (!playing) return;
-    const next = valueToDate(Math.min(value + 0.5, 100), minDate, maxDate);
-    onChange(next);
-    if (value >= 99.5) setPlaying(false);
+    const timer = setTimeout(() => {
+      const next = valueToDate(Math.min(value + 0.5, 100), minDate, maxDate);
+      onChange(next);
+      if (value >= 99.5) setPlaying(false);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [playing, value, minDate, maxDate, onChange]);
-
-  // Simple interval via useEffect — only runs when playing
-  // (kept minimal to avoid re-render loops)
-  if (typeof window !== 'undefined' && playing) {
-    setTimeout(tick, 300);
-  }
 
   return (
     <footer className="h-16 bg-gray-900/80 backdrop-blur-sm border-t border-cyan-400/30 flex items-center px-6 gap-4">

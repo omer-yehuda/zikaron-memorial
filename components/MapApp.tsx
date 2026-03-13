@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { Soldier } from '@/lib/types';
 import Header from './ui/Header';
 import SoldierPanel from './panel/SoldierPanel';
@@ -14,7 +14,7 @@ interface MapAppProps {
 }
 
 export default function MapApp({ initialSoldiers }: MapAppProps) {
-  const [soldiers] = useState<Soldier[]>(initialSoldiers);
+  const soldiers = initialSoldiers;
   const [selected, setSelected] = useState<Soldier | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentDate, setCurrentDate] = useState(() => {

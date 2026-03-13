@@ -2,6 +2,7 @@
 
 import type { Soldier } from '@/lib/types';
 import { BRANCH_LABELS } from '@/lib/constants';
+import SoldierAvatar from '@/components/ui/SoldierAvatar';
 
 interface SoldierPanelProps {
   soldiers: Soldier[];
@@ -39,15 +40,7 @@ export default function SoldierPanel({ soldiers, selected, onSelect }: SoldierPa
                 isSelected ? 'bg-cyan-400/10 border-l-2 border-l-cyan-400' : ''
               }`}
             >
-              {/* Photo placeholder */}
-              <div className="w-10 h-10 rounded-full border border-cyan-400/30 bg-gray-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {soldier.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={soldier.photo_url} alt={soldier.name_en} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-lg text-gray-600">{soldier.gender === 'female' ? '🕎' : '✡'}</span>
-                )}
-              </div>
+              <SoldierAvatar soldier={soldier} />
 
               {/* Info */}
               <div className="flex-1 min-w-0">

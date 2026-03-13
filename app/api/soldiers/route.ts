@@ -1,15 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getLocalSoldiers } from '@/lib/soldiers';
-import type { Soldier } from '@/lib/types';
-
-// Use DynamoDB when configured, otherwise fall back to local JSON (dev / build)
-async function fetchSoldiers(): Promise<Soldier[]> {
-  if (process.env.DYNAMODB_SOLDIERS_TABLE) {
-    const { getAllSoldiers } = await import('@/lib/dynamodb');
-    return getAllSoldiers();
-  }
-  return getLocalSoldiers();
-}
+import { fetchSoldiers } from '@/lib/soldiers';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
