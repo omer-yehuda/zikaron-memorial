@@ -19,6 +19,7 @@ const config: Config = {
         glass: 'rgba(15,25,50,0.6)',
       },
       fontFamily: {
+        heebo: ['Heebo', 'sans-serif'],
         he: ['"Frank Ruhl Libre"', 'serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
