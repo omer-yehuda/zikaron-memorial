@@ -62,9 +62,11 @@ export default function MapApp({ initialSoldiers }: MapAppProps) {
 
         <div className="flex-1 relative">
           <MapView soldiers={visible} selected={selected} onSelect={handleSelect} />
-          {selected && <SoldierDetail soldier={selected} onClose={handleClose} />}
         </div>
       </main>
+
+      {/* Modal lives outside the map container so it stacks above Leaflet's z-index */}
+      {selected && <SoldierDetail soldier={selected} onClose={handleClose} />}
 
       <TimelineBar
         minDate={minDate}

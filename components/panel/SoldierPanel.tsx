@@ -45,14 +45,14 @@ export default function SoldierPanel({ soldiers, selected, onSelect }: SoldierPa
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={soldier.photo_url} alt={soldier.name_en} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-lg text-gray-600">✡</span>
+                  <span className="text-lg text-gray-600">{soldier.gender === 'female' ? '🕎' : '✡'}</span>
                 )}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-white truncate">{soldier.name_he}</div>
-                <div className="text-xs text-gray-400 truncate">{soldier.rank_en} · {soldier.unit_en}</div>
+                <div className="text-xs text-gray-400 truncate" dir="rtl">{soldier.rank_he} · {soldier.unit_he}</div>
                 <div className="text-xs font-mono mt-0.5 flex items-center gap-2">
                   <span style={{ color: branchMeta?.color }} className="text-[10px] tracking-wide">
                     {branchMeta?.en?.toUpperCase()}

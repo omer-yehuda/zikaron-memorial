@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Soldier } from '@/lib/types';
 import { BRANCH_LABELS, MAP_CENTER, MAP_ZOOM } from '@/lib/constants';
 
@@ -15,13 +15,13 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import('leaflet').Map | null>(null);
   const markersRef = useRef<Map<string, import('leaflet').Marker>>(new Map());
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
-    let L: typeof import('leaflet');
 
     (async () => {
-      L = (await import('leaflet')).default;
+      const L = (await import('leaflet')).default;
 
       if (mapRef.current) return; // already initialised
 
@@ -41,19 +41,21 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
       L.control.zoom({ position: 'topright' }).addTo(map);
 
       mapRef.current = map;
+      setMapReady(true); // trigger marker sync now that map exists
     })();
 
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
       markersRef.current.clear();
+      setMapReady(false);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync markers
+  // Sync markers — runs when map becomes ready OR soldiers list changes
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
 
     (async () => {
@@ -73,13 +75,28 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
         if (markersRef.current.has(soldier.id)) continue;
         const branchColor = BRANCH_LABELS[soldier.branch]?.color ?? '#6b7280';
 
+        const symbol = soldier.gender === 'female'
+          // Menorah: base + shaft + 3 arms each side
+          ? `<g stroke="white" stroke-width="1.2" fill="none">
+               <line x1="14" y1="7" x2="14" y2="20"/>
+               <line x1="8"  y1="20" x2="20" y2="20"/>
+               <line x1="11" y1="20" x2="11" y2="20"/>
+               <path d="M8 14 Q8 10 14 10 Q20 10 20 14"/>
+               <line x1="8"  y1="10" x2="8"  y2="20"/>
+               <line x1="11" y1="11" x2="11" y2="20"/>
+               <line x1="17" y1="11" x2="17" y2="20"/>
+               <line x1="20" y1="10" x2="20" y2="20"/>
+             </g>`
+          // Star of David
+          : `<polygon points="14,6 17,12 23,12 18,16 20,22 14,18 8,22 10,16 5,12 11,12" fill="white" fill-opacity="0.9" stroke="none"/>`;
+
         const icon = L.divIcon({
           className: '',
           html: `
             <svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
               <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22S28 24.5 28 14C28 6.27 21.73 0 14 0z"
-                fill="${branchColor}" fill-opacity="0.85" stroke="#000" stroke-width="1"/>
-              <text x="14" y="18" text-anchor="middle" font-size="11" fill="white" font-family="Arial">✡</text>
+                fill="${branchColor}" fill-opacity="0.9" stroke="rgba(0,0,0,0.6)" stroke-width="1"/>
+              ${symbol}
             </svg>`,
           iconSize: [28, 36],
           iconAnchor: [14, 36],
@@ -102,7 +119,7 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [soldiers]);
+  }, [mapReady, soldiers]);
 
   // Pan to selected
   useEffect(() => {

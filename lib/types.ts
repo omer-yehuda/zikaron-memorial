@@ -4,6 +4,7 @@ export interface Soldier {
   id: string;
   name_he: string;
   name_en: string;
+  gender: 'male' | 'female';
   rank_he: string;
   rank_en: string;
   unit_he: string;

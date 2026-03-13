@@ -33,7 +33,7 @@ export default function SoldierDetail({ soldier, onClose }: SoldierDetailProps) 
   };
 
   return (
-    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
       <div className="bg-gray-900 border border-cyan-400/30 rounded-lg max-w-md w-full p-6 relative">
         {/* Close */}
         <button
@@ -51,7 +51,7 @@ export default function SoldierDetail({ soldier, onClose }: SoldierDetailProps) 
               // eslint-disable-next-line @next/next/no-img-element
               <img src={soldier.photo_url} alt={soldier.name_en} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-3xl text-gray-600">✡</span>
+              <span className="text-3xl text-gray-600">{soldier.gender === 'female' ? '🕎' : '✡'}</span>
             )}
           </div>
           <h2 className="text-xl font-bold text-white">{soldier.name_he}</h2>

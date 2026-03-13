@@ -1,9 +1,19 @@
 /**
  * Run once to create DynamoDB tables and seed soldier data.
- * Usage: npx tsx scripts/setup-dynamodb.ts
+ * Usage: pnpm setup:dynamodb
  *
- * Requires AWS credentials in environment (or ~/.aws/credentials).
+ * Reads credentials from .env.local automatically.
  */
+
+// Load .env.local into process.env
+import { readFileSync } from 'fs';
+try {
+  const lines = readFileSync('.env.local', 'utf-8').split('\n');
+  for (const line of lines) {
+    const m = line.match(/^\s*([^#\s][^=]*?)\s*=\s*(.*?)\s*$/);
+    if (m) process.env[m[1]] = m[2];
+  }
+} catch { /* no .env.local — fall through to existing env */ }
 import {
   DynamoDBClient,
   CreateTableCommand,
