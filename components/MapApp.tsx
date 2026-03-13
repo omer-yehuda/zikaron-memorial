@@ -1,123 +1,76 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
-import dynamic from 'next/dynamic';
-import type { Soldier, UnitBranch } from '@/lib/types';
-import { CONFLICT_START_DATE, TIMELINE_END } from '@/lib/constants';
-import {
-  getAllSoldiers,
-  getSoldiersUpToDate,
-  searchSoldiers,
-  filterByBranch,
-  getStats,
-} from '@/lib/soldiers';
-import { Header } from './ui/Header';
-import { SoldierPanel } from './panel/SoldierPanel';
-import { TimelineBar } from './timeline/TimelineBar';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { Soldier } from '@/lib/types';
+import Header from './ui/Header';
+import SoldierPanel from './panel/SoldierPanel';
+import MapView from './map/MapView';
+import TimelineBar from './timeline/TimelineBar';
+import SoldierDetail from './panel/SoldierDetail';
+import { OPERATION_START } from '@/lib/constants';
 
-const MapView = dynamic(
-  () => import('./map/MapView').then((m) => ({ default: m.MapView })),
-  { ssr: false }
-);
+interface MapAppProps {
+  initialSoldiers: Soldier[];
+}
 
-const ALL_BRANCHES: UnitBranch[] = ['ground', 'air', 'navy', 'special'];
-type PlaySpeed = 1 | 5 | 10;
-
-const allSoldiers = getAllSoldiers();
-
-export default function MapApp() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedSoldier, setSelectedSoldier] = useState<Soldier | null>(null);
+export default function MapApp({ initialSoldiers }: MapAppProps) {
+  const [soldiers] = useState<Soldier[]>(initialSoldiers);
+  const [selected, setSelected] = useState<Soldier | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [branchFilters, setBranchFilters] = useState<Set<UnitBranch>>(new Set(ALL_BRANCHES));
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playSpeed, setPlaySpeed] = useState<PlaySpeed>(1);
+  const [currentDate, setCurrentDate] = useState(() => {
+    const last = [...initialSoldiers].sort((a, b) =>
+      b.date_of_death.localeCompare(a.date_of_death)
+    )[0]?.date_of_death;
+    return last ?? new Date().toISOString().slice(0, 10);
+  });
 
-  const upToDate = useMemo(() => getSoldiersUpToDate(selectedDate), [selectedDate]);
+  const minDate = OPERATION_START;
+  const maxDate = useMemo(() => {
+    const dates = soldiers.map((s) => s.date_of_death).sort();
+    return dates[dates.length - 1] ?? new Date().toISOString().slice(0, 10);
+  }, [soldiers]);
 
-  const searched = useMemo(
-    () => (searchQuery ? searchSoldiers(searchQuery) : upToDate),
-    [searchQuery, upToDate]
-  );
-
-  const visibleSoldiers = useMemo(
-    () => filterByBranch(searched, Array.from(branchFilters)),
-    [searched, branchFilters]
-  );
-
-  const stats = useMemo(() => getStats(visibleSoldiers), [visibleSoldiers]);
-
-  const handleBranchToggle = useCallback((branch: UnitBranch) => {
-    setBranchFilters((prev) => {
-      const next = new Set(prev);
-      if (next.has(branch)) next.delete(branch);
-      else next.add(branch);
-      return next;
+  // Filter soldiers by date and search
+  const visible = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return soldiers.filter((s) => {
+      if (s.date_of_death > currentDate) return false;
+      if (q && !s.name_he.includes(q) && !s.name_en.toLowerCase().includes(q) && !s.unit_en.toLowerCase().includes(q)) return false;
+      return true;
     });
-  }, []);
+  }, [soldiers, currentDate, searchQuery]);
 
-  const handlePlayToggle = useCallback(() => {
-    setIsPlaying((p) => {
-      if (!p && selectedDate >= TIMELINE_END) setSelectedDate(CONFLICT_START_DATE);
-      return !p;
-    });
-  }, [selectedDate]);
-
-  const handleDateChange = useCallback((dateOrUpdater: Date | ((prev: Date) => Date)) => {
-    setSelectedDate((prev) => {
-      const next = typeof dateOrUpdater === 'function' ? dateOrUpdater(prev) : dateOrUpdater;
-      if (next >= TIMELINE_END) { setIsPlaying(false); return TIMELINE_END; }
-      return next;
-    });
-  }, []);
+  const handleSelect = useCallback((s: Soldier) => setSelected(s), []);
+  const handleClose = useCallback(() => setSelected(null), []);
 
   return (
-    <div className="min-h-screen bg-black text-white font-heebo flex flex-col overflow-hidden">
-
-      {/* Tech corner borders */}
-      <div className="absolute inset-0 pointer-events-none z-50">
-        <div className="absolute top-0 left-0 w-32 h-32 border-l-2 border-t-2 border-cyan-400/20" />
-        <div className="absolute top-0 right-0 w-32 h-32 border-r-2 border-t-2 border-cyan-400/20" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 border-l-2 border-b-2 border-cyan-400/20" />
-        <div className="absolute bottom-0 right-0 w-32 h-32 border-r-2 border-b-2 border-cyan-400/20" />
-      </div>
+    <div className="h-screen flex flex-col bg-black text-white overflow-hidden relative">
+      {/* HUD corner brackets */}
+      <span className="absolute top-0 left-0 w-10 h-10 border-l-2 border-t-2 border-cyan-400/20 pointer-events-none z-20" />
+      <span className="absolute top-0 right-0 w-10 h-10 border-r-2 border-t-2 border-cyan-400/20 pointer-events-none z-20" />
+      <span className="absolute bottom-0 left-0 w-10 h-10 border-l-2 border-b-2 border-cyan-400/20 pointer-events-none z-20" />
+      <span className="absolute bottom-0 right-0 w-10 h-10 border-r-2 border-b-2 border-cyan-400/20 pointer-events-none z-20" />
 
       <Header
-        totalFallen={stats.total}
+        totalFallen={visible.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex flex-1 overflow-hidden min-h-0">
-        <SoldierPanel
-          soldiers={visibleSoldiers}
-          selectedSoldier={selectedSoldier}
-          onSoldierSelect={setSelectedSoldier}
-          stats={stats}
-          branchFilters={branchFilters}
-          onBranchToggle={handleBranchToggle}
-        />
+      <main className="flex flex-1 overflow-hidden">
+        <SoldierPanel soldiers={visible} selected={selected} onSelect={handleSelect} />
+
         <div className="flex-1 relative">
-          <div className="absolute top-3 right-4 text-xs text-cyan-400 z-20 font-mono tracking-widest">
-            ISRAEL THEATER / DEPLOYED MAPPING
-          </div>
-          <MapView
-            soldiers={visibleSoldiers}
-            selectedSoldier={selectedSoldier}
-            onSoldierSelect={setSelectedSoldier}
-          />
+          <MapView soldiers={visible} selected={selected} onSelect={handleSelect} />
+          {selected && <SoldierDetail soldier={selected} onClose={handleClose} />}
         </div>
       </main>
 
       <TimelineBar
-        selectedDate={selectedDate}
-        onDateChange={handleDateChange}
-        soldiers={allSoldiers}
-        visibleCount={visibleSoldiers.length}
-        isPlaying={isPlaying}
-        onPlayToggle={handlePlayToggle}
-        playSpeed={playSpeed}
-        onSpeedChange={setPlaySpeed}
+        minDate={minDate}
+        maxDate={maxDate}
+        currentDate={currentDate}
+        onChange={setCurrentDate}
       />
     </div>
   );

@@ -1,93 +1,27 @@
 import soldiersData from '@/data/soldiers.json';
-import type { Soldier, SoldierStats, UnitBranch } from './types';
-import { CONFLICT_START_DATE } from './constants';
+import type { Soldier, Stats } from './types';
 
-const soldiers = soldiersData as Soldier[];
+// Local JSON fallback — used when DynamoDB is not configured (dev / static build)
+export function getLocalSoldiers(): Soldier[] {
+  return soldiersData as Soldier[];
+}
 
-export const getAllSoldiers = (): Soldier[] => soldiers;
-
-export const getSoldierById = (id: string): Soldier | undefined =>
-  soldiers.find((s) => s.id === id);
-
-export const getSoldiersUpToDate = (date: Date): Soldier[] =>
-  soldiers.filter((s) => new Date(s.date_of_fall) <= date);
-
-export const searchSoldiers = (query: string): Soldier[] => {
-  if (!query.trim()) return soldiers;
-  const lower = query.toLowerCase();
-  return soldiers.filter(
-    (s) =>
-      s.name_en.toLowerCase().includes(lower) ||
-      s.name_he.includes(query) ||
-      s.unit.toLowerCase().includes(lower) ||
-      s.city_of_origin.toLowerCase().includes(lower) ||
-      s.location_name.toLowerCase().includes(lower)
-  );
-};
-
-export const filterByBranch = (
-  input: Soldier[],
-  branches: UnitBranch[]
-): Soldier[] => {
-  if (branches.length === 0) return input;
-  return input.filter((s) => branches.includes(s.unit_branch));
-};
-
-export const getStats = (input: Soldier[]): SoldierStats => {
-  const byBranch: Record<UnitBranch, number> = {
-    ground: 0,
-    air: 0,
-    navy: 0,
-    special: 0,
+export function computeStats(soldiers: Soldier[]): Stats {
+  const by_branch: Stats['by_branch'] = {
+    infantry: 0, armor: 0, navy: 0, air_force: 0,
+    special_forces: 0, engineering: 0, intelligence: 0, artillery: 0, other: 0,
   };
+  const by_month: Record<string, number> = {};
+  let first_date = soldiers[0]?.date_of_death ?? '';
+  let last_date = '';
 
-  const byMonth: Record<string, number> = {};
-  const cities = new Set<string>();
-  const units = new Set<string>();
-
-  for (const s of input) {
-    byBranch[s.unit_branch] = (byBranch[s.unit_branch] ?? 0) + 1;
-    const month = s.date_of_fall.slice(0, 7);
-    byMonth[month] = (byMonth[month] ?? 0) + 1;
-    cities.add(s.city_of_origin);
-    units.add(s.unit);
+  for (const s of soldiers) {
+    by_branch[s.branch] = (by_branch[s.branch] ?? 0) + 1;
+    const month = s.date_of_death.slice(0, 7);
+    by_month[month] = (by_month[month] ?? 0) + 1;
+    if (s.date_of_death < first_date) first_date = s.date_of_death;
+    if (s.date_of_death > last_date) last_date = s.date_of_death;
   }
 
-  return {
-    total: input.length,
-    byBranch,
-    byMonth,
-    citiesCount: cities.size,
-    unitsCount: units.size,
-    daysSinceStart: getDaysSinceStart(),
-  };
-};
-
-export const formatDateHebrew = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const options: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  };
-  return date.toLocaleDateString('he-IL', options);
-};
-
-export const formatDateEnglish = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const options: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  };
-  return date.toLocaleDateString('en-US', options);
-};
-
-export const getLocationDisplay = (soldier: Soldier): string =>
-  soldier.coordinates ? `📍 ${soldier.location_name}` : '📍 Unknown location';
-
-export const getDaysSinceStart = (date?: Date): number => {
-  const target = date ?? new Date();
-  const diff = target.getTime() - CONFLICT_START_DATE.getTime();
-  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-};
+  return { total: soldiers.length, by_branch, by_month, first_date, last_date };
+}

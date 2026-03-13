@@ -1,255 +1,81 @@
-@import 'leaflet/dist/leaflet.css';
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --color-bg: #0a0a0f;
-  --color-bg-card: #0f1117;
-  --color-gold: #f4a261;
-  --color-electric: #00b4d8;
-  --color-danger: #e63946;
-  --color-text: #f0f0f0;
-  --color-text-muted: #a8b2c1;
-  --color-text-he: #ffd700;
-  --color-border: rgba(0, 180, 216, 0.2);
-  --color-glass: rgba(15, 25, 50, 0.6);
-  --font-he: 'Frank Ruhl Libre', serif;
-  --font-mono: 'JetBrains Mono', monospace;
-}
-
-@layer utilities {
-  .grid-pattern {
-    background-image:
-      linear-gradient(rgba(0, 255, 255, 0.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 255, 255, 0.07) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-  .glow {
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-  }
-  .glow-orange {
-    box-shadow: 0 0 10px rgba(251, 146, 60, 0.6);
-  }
-}
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
+  :root {
+    --cyan: #06b6d4;
+    --orange: #f97316;
+  }
+
+  * {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
   }
 
-  html {
-    color-scheme: dark;
-    background: #0a0a0f;
-    color: #f0f0f0;
-    font-size: 14px;
-  }
-
+  html,
   body {
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: "Heebo", sans-serif;
     overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  ::selection {
-    background: rgba(244, 162, 97, 0.3);
-    color: #f0f0f0;
-  }
-
-  ::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #0a0a0f;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #f4a261;
-    border-radius: 2px;
   }
 }
 
-/* Leaflet cluster dark theme */
-.marker-cluster-small,
-.marker-cluster-medium,
-.marker-cluster-large {
-  background-color: rgba(244, 162, 97, 0.2) !important;
+/* Tactical grid background */
+.grid-bg {
+  background-image: linear-gradient(rgba(6, 182, 212, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-.marker-cluster-small div,
-.marker-cluster-medium div,
-.marker-cluster-large div {
-  background-color: rgba(244, 162, 97, 0.85) !important;
-  color: #0a0a0f !important;
-  font-family: var(--font-mono) !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.3);
+  border-radius: 2px;
 }
 
-.marker-cluster {
-  border: 2px solid rgba(244, 162, 97, 0.6) !important;
+/* Leaflet dark popup */
+.dark-popup .leaflet-popup-content-wrapper {
+  background: #111827;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 6px;
+  color: #fff;
+  padding: 0;
+}
+.dark-popup .leaflet-popup-content {
+  margin: 10px 14px;
+}
+.dark-popup .leaflet-popup-tip {
+  background: #111827;
+}
+.dark-popup .leaflet-popup-close-button {
+  color: #6b7280 !important;
 }
 
-/* Leaflet popup dark theme */
-.leaflet-popup-content-wrapper {
-  background: var(--color-bg-card) !important;
-  border: 1px solid var(--color-border) !important;
-  border-radius: 8px !important;
-  color: var(--color-text) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+/* Leaflet controls dark theme */
+.leaflet-control-zoom a {
+  background: #1f2937 !important;
+  color: #06b6d4 !important;
+  border-color: rgba(6, 182, 212, 0.3) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: #374151 !important;
 }
 
-.leaflet-popup-tip {
-  background: var(--color-bg-card) !important;
-}
-
-.leaflet-popup-close-button {
-  color: var(--color-text-muted) !important;
-}
-
-/* Popup card (Leaflet HTML string content) */
-.popup-card {
-  padding: 4px;
-  min-width: 180px;
-  animation: fadeIn 0.2s ease;
-}
-
-.popup-name-he {
-  font-family: var(--font-he);
-  color: var(--color-text-he);
-  font-size: 16px;
-  font-weight: 700;
-  direction: rtl;
-  margin-bottom: 2px;
-}
-
-.popup-name-en {
-  font-size: 13px;
-  color: var(--color-text);
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.popup-rank {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-electric);
-  margin-bottom: 4px;
-}
-
-.popup-date {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin-bottom: 2px;
-}
-
-.popup-location {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-bottom: 8px;
-}
-
-.popup-link {
-  display: inline-block;
-  font-size: 12px;
-  color: var(--color-gold);
-  text-decoration: none;
-  border: 1px solid rgba(244, 162, 97, 0.4);
-  padding: 3px 8px;
-  border-radius: 4px;
-}
-
-.popup-link:hover {
-  background: rgba(244, 162, 97, 0.15);
-}
-
-/* Pin styles (Leaflet divIcon) */
-.pin-container {
-  position: relative;
+/* Range input styling */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--orange);
   cursor: pointer;
-  animation: pinDrop 0.4s ease;
-}
-
-.pin-container:hover svg {
-  filter: drop-shadow(0 0 12px rgba(244, 162, 97, 1));
-  transform: scale(1.15);
-}
-
-.pin-selected svg {
-  filter: drop-shadow(0 0 16px rgba(230, 57, 70, 1));
-  animation: glow 1.5s ease-in-out infinite;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pinDrop {
-  0% {
-    transform: translateY(-20px) scale(0.8);
-    opacity: 0;
-  }
-  60% {
-    transform: translateY(4px) scale(1.1);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes glow {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 4px rgba(244, 162, 97, 0.6));
-  }
-  50% {
-    filter: drop-shadow(0 0 12px rgba(244, 162, 97, 1));
-  }
-}
-
-@keyframes candleFlicker {
-  0%,
-  100% {
-    transform: scaleX(1);
-    opacity: 0.9;
-  }
-  25% {
-    transform: scaleX(0.9) scaleY(1.1) translateX(-1px);
-    opacity: 1;
-  }
-  50% {
-    transform: scaleX(1.1) scaleY(0.9) translateX(1px);
-    opacity: 0.85;
-  }
-  75% {
-    transform: scaleX(0.95) scaleY(1.05);
-    opacity: 0.95;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
 }

@@ -1,19 +1,19 @@
-'use client';
+import MapApp from '@/components/MapApp';
+import { getLocalSoldiers } from '@/lib/soldiers';
 
-import dynamic from 'next/dynamic';
-import { Box, Text } from '@/components/ui/primitives';
+async function getSoldiers() {
+  if (process.env.DYNAMODB_SOLDIERS_TABLE) {
+    try {
+      const { getAllSoldiers } = await import('@/lib/dynamodb');
+      return getAllSoldiers();
+    } catch {
+      // Fallback to local JSON if DynamoDB unavailable
+    }
+  }
+  return getLocalSoldiers();
+}
 
-const MapApp = dynamic(() => import('@/components/MapApp'), {
-  ssr: false,
-  loading: () => (
-    <Box className="flex items-center justify-center h-screen bg-bg">
-      <Text className="font-mono text-[14px] text-gold tracking-[0.1em]">
-        טוען מפה... LOADING MAP...
-      </Text>
-    </Box>
-  ),
-});
-
-export default function HomePage() {
-  return <MapApp />;
+export default async function HomePage() {
+  const soldiers = await getSoldiers();
+  return <MapApp initialSoldiers={soldiers} />;
 }

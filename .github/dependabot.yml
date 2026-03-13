@@ -8,8 +8,37 @@ updates:
       time: "09:00"
       timezone: Asia/Jerusalem
     open-pull-requests-limit: 10
+    groups:
+      aws-sdk:
+        patterns:
+          - "@aws-sdk/*"
+      react-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "next"
+          - "@types/react*"
+      leaflet:
+        patterns:
+          - "leaflet"
+          - "react-leaflet"
+          - "@types/leaflet"
+      dev-tools:
+        dependency-type: development
     labels:
       - dependencies
+      - automated
     commit-message:
-      prefix: chore
+      prefix: "chore(deps)"
       include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - automated
+    commit-message:
+      prefix: "chore(deps)"

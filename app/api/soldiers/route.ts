@@ -1,57 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server';
-import {
-  getAllSoldiers,
-  getSoldiersUpToDate,
-  searchSoldiers,
-  filterByBranch,
-} from '@/lib/soldiers';
-import type { UnitBranch } from '@/lib/types';
+import { NextResponse } from 'next/server';
+import { getLocalSoldiers } from '@/lib/soldiers';
+import type { Soldier } from '@/lib/types';
 
-const VALID_BRANCHES = new Set<UnitBranch>(['ground', 'air', 'navy', 'special']);
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const MAX_Q_LEN = 200;
-
-const parseDate = (s: string): Date | null => {
-  if (!ISO_DATE_RE.test(s)) return null;
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
-};
-
-export const GET = (req: NextRequest): NextResponse => {
-  const { searchParams } = req.nextUrl;
-
-  const q = (searchParams.get('q') ?? '').slice(0, MAX_Q_LEN);
-  const branchParam = searchParams.get('branch') ?? '';
-  const fromParam = searchParams.get('from') ?? '';
-  const toParam = searchParams.get('to') ?? '';
-
-  let soldiers = getAllSoldiers();
-
-  if (toParam) {
-    const to = parseDate(toParam);
-    if (!to) return NextResponse.json({ error: 'Invalid to date' }, { status: 400 });
-    soldiers = getSoldiersUpToDate(to);
+// Use DynamoDB when configured, otherwise fall back to local JSON (dev / build)
+async function fetchSoldiers(): Promise<Soldier[]> {
+  if (process.env.DYNAMODB_SOLDIERS_TABLE) {
+    const { getAllSoldiers } = await import('@/lib/dynamodb');
+    return getAllSoldiers();
   }
+  return getLocalSoldiers();
+}
 
-  if (fromParam) {
-    const from = parseDate(fromParam);
-    if (!from) return NextResponse.json({ error: 'Invalid from date' }, { status: 400 });
-    soldiers = soldiers.filter((s) => new Date(s.date_of_fall) >= from);
-  }
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const branch = searchParams.get('branch');
+  const before = searchParams.get('before'); // ISO date filter
+  const q = searchParams.get('q')?.toLowerCase();
 
+  let soldiers = await fetchSoldiers();
+
+  if (branch) soldiers = soldiers.filter((s) => s.branch === branch);
+  if (before) soldiers = soldiers.filter((s) => s.date_of_death <= before);
   if (q) {
-    const searched = searchSoldiers(q);
-    const ids = new Set(searched.map((s) => s.id));
-    soldiers = soldiers.filter((s) => ids.has(s.id));
+    soldiers = soldiers.filter(
+      (s) =>
+        s.name_en.toLowerCase().includes(q) ||
+        s.name_he.includes(q) ||
+        s.unit_en.toLowerCase().includes(q)
+    );
   }
 
-  if (branchParam) {
-    const branches = branchParam
-      .split(',')
-      .map((b) => b.trim())
-      .filter((b): b is UnitBranch => VALID_BRANCHES.has(b as UnitBranch));
-    if (branches.length > 0) soldiers = filterByBranch(soldiers, branches);
-  }
+  soldiers.sort((a, b) => a.date_of_death.localeCompare(b.date_of_death));
 
-  return NextResponse.json({ soldiers, total: soldiers.length });
-};
+  return NextResponse.json(soldiers, {
+    headers: { 'Cache-Control': 'public, max-age=60' },
+  });
+}

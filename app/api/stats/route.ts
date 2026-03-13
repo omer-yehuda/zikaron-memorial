@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getAllSoldiers, getStats } from '@/lib/soldiers';
+import { getLocalSoldiers, computeStats } from '@/lib/soldiers';
+import type { Soldier } from '@/lib/types';
 
-export const GET = (): NextResponse => {
-  const soldiers = getAllSoldiers();
-  const stats = getStats(soldiers);
-  return NextResponse.json(stats);
-};
+async function fetchSoldiers(): Promise<Soldier[]> {
+  if (process.env.DYNAMODB_SOLDIERS_TABLE) {
+    const { getAllSoldiers } = await import('@/lib/dynamodb');
+    return getAllSoldiers();
+  }
+  return getLocalSoldiers();
+}
+
+export async function GET() {
+  const soldiers = await fetchSoldiers();
+  const stats = computeStats(soldiers);
+  return NextResponse.json(stats, {
+    headers: { 'Cache-Control': 'public, max-age=300' },
+  });
+}

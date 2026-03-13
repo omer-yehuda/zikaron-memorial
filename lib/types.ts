@@ -1,45 +1,39 @@
+export type Branch = 'infantry' | 'armor' | 'navy' | 'air_force' | 'special_forces' | 'engineering' | 'intelligence' | 'artillery' | 'other';
+
 export interface Soldier {
   id: string;
   name_he: string;
   name_en: string;
   rank_he: string;
   rank_en: string;
-  unit: string;
-  unit_branch: 'ground' | 'navy' | 'air' | 'special';
-  date_of_birth: string;
-  date_of_fall: string;
-  location_name: string;
-  coordinates?: { lat: number; lng: number } | null;
-  city_of_origin: string;
-  photo_url?: string;
-  bio_he?: string;
-  bio_en?: string;
-  age_at_fall: number;
-  conflict: string;
-  source_url?: string;
-}
-
-export type UnitBranch = Soldier['unit_branch'];
-
-export interface SoldierStats {
-  total: number;
-  byBranch: Record<UnitBranch, number>;
-  byMonth: Record<string, number>;
-  citiesCount: number;
-  unitsCount: number;
-  daysSinceStart: number;
-}
-
-export interface BranchConfig {
-  id: UnitBranch;
-  label_he: string;
-  label_en: string;
-  color: string;
-}
-
-export interface MapLabel {
-  name: string;
+  unit_he: string;
+  unit_en: string;
+  branch: Branch;
+  date_of_death: string; // ISO date YYYY-MM-DD
+  age: number;
+  city_he: string;
+  city_en: string;
   lat: number;
   lng: number;
-  type: 'city' | 'region';
+  description_he?: string;
+  description_en?: string;
+  photo_url?: string;
+}
+
+export interface SoldierWithCandles extends Soldier {
+  candle_count: number;
+}
+
+export interface Stats {
+  total: number;
+  by_branch: Record<Branch, number>;
+  by_month: Record<string, number>; // "YYYY-MM" -> count
+  first_date: string;
+  last_date: string;
+}
+
+export interface CandlePayload {
+  soldier_id: string;
+  count: number;
+  last_lit_at: string;
 }
