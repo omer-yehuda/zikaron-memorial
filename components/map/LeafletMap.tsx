@@ -14,6 +14,8 @@ interface LeafletMapProps {
 export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import('leaflet').Map | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clusterRef = useRef<any>(null);
   const markersRef = useRef<Map<string, import('leaflet').Marker>>(new Map());
   const [mapReady, setMapReady] = useState(false);
 
@@ -22,6 +24,9 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
 
     (async () => {
       const L = (await import('leaflet')).default;
+      await import('leaflet.markercluster'); // registers L.MarkerClusterGroup on the L namespace
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const MarkerClusterGroup = (L as any).MarkerClusterGroup;
 
       if (mapRef.current) return; // already initialised
 
@@ -34,20 +39,44 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
 
       // CartoDB Voyager — colorful, shows roads/terrain/water
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://carto.com/">CartoDB</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+        attribution: '&copy; CartoDB &copy; OSM',
         subdomains: 'abcd',
         maxZoom: 19,
       }).addTo(map);
 
       L.control.zoom({ position: 'topright' }).addTo(map);
 
+      const cluster = new MarkerClusterGroup({
+        maxClusterRadius: 50,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        iconCreateFunction: (c: any) => {
+          const count = c.getChildCount();
+          return L.divIcon({
+            className: '',
+            html: `<div style="
+              background:rgba(6,182,212,0.85);
+              border:2px solid #fff;
+              border-radius:50%;
+              width:36px;height:36px;
+              display:flex;align-items:center;justify-content:center;
+              color:#fff;font-weight:700;font-size:13px;font-family:monospace;
+              box-shadow:0 0 8px rgba(6,182,212,0.6);">${count}</div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+          });
+        },
+      });
+      cluster.addTo(map);
+
+      clusterRef.current = cluster;
       mapRef.current = map;
-      setMapReady(true); // trigger marker sync now that map exists
+      setMapReady(true);
     })();
 
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
+      clusterRef.current = null;
       markersRef.current.clear();
       setMapReady(false);
     };
@@ -56,8 +85,8 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
 
   // Sync markers — runs when map becomes ready OR soldiers list changes
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
-    const map = mapRef.current;
+    if (!mapReady || !mapRef.current || !clusterRef.current) return;
+    const cluster = clusterRef.current;
 
     (async () => {
       const L = (await import('leaflet')).default;
@@ -66,7 +95,7 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
       const currentIds = new Set(soldiers.map((s) => s.id));
       for (const [id, marker] of markersRef.current) {
         if (!currentIds.has(id)) {
-          marker.remove();
+          cluster.removeLayer(marker);
           markersRef.current.delete(id);
         }
       }
@@ -102,7 +131,7 @@ export default function LeafletMap({ soldiers, selected, onSelect }: LeafletMapP
         });
 
         const marker = L.marker([soldier.lat, soldier.lng], { icon })
-          .addTo(map)
+          .addTo(cluster)
           .bindPopup(
             `<div style="font-family:Heebo,sans-serif;min-width:160px;direction:rtl">
               <strong style="color:#fff;font-size:14px">${soldier.name_he}</strong><br>
