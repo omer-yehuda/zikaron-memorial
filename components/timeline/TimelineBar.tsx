@@ -1,20 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Play, Pause, RotateCcw } from 'lucide-react';
 import type { Soldier } from '@/lib/types';
 import { CONFLICT_START_DATE, TIMELINE_END } from '@/lib/constants';
-import {
-  dateToPercent,
-  percentToDate,
-  getMonthTicks,
-  getCasualtyDensity,
-  formatTimelineDate,
-  getDayNumber,
-} from './timelineUtils';
-import { Box, Text, Btn } from '@/components/ui/primitives';
-import { cn } from '@/lib/cn';
+import { dateToPercent, percentToDate, getDayNumber, formatTimelineDate } from './timelineUtils';
 
-const DENSITY_BUCKETS = 60;
+const MEMORIAL_YEARS = [1948, 1967, 1973, 1982, 2006, 2023, 2024, 2025, 2026];
+const DISPLAY_YEARS = [1948, 1967, 1973, 1982, 2006, 2023, 2024, 2025, 2026];
 const SPEEDS = [1, 5, 10] as const;
 type Speed = (typeof SPEEDS)[number];
 
@@ -32,7 +25,7 @@ interface TimelineBarProps {
 export const TimelineBar = ({
   selectedDate,
   onDateChange,
-  soldiers,
+  soldiers: _soldiers,
   visibleCount,
   isPlaying,
   onPlayToggle,
@@ -40,16 +33,9 @@ export const TimelineBar = ({
   onSpeedChange,
 }: TimelineBarProps) => {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [density, setDensity] = useState<number[]>([]);
   const dragging = useRef(false);
 
   useEffect(() => () => { dragging.current = false; }, []);
-
-  useEffect(() => {
-    setDensity(
-      getCasualtyDensity(soldiers, CONFLICT_START_DATE, TIMELINE_END, DENSITY_BUCKETS)
-    );
-  }, [soldiers]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -63,134 +49,131 @@ export const TimelineBar = ({
   }, [isPlaying, playSpeed, onDateChange]);
 
   const pct = dateToPercent(selectedDate, CONFLICT_START_DATE, TIMELINE_END);
-  const ticks = getMonthTicks(CONFLICT_START_DATE, TIMELINE_END);
-  const maxDensity = Math.max(...density, 1);
   const dayNum = getDayNumber(selectedDate, CONFLICT_START_DATE);
 
-  const handleTrackClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-      onDateChange(
-        percentToDate((x / rect.width) * 100, CONFLICT_START_DATE, TIMELINE_END)
-      );
-    },
-    [onDateChange]
-  );
+  const handleTrackClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    onDateChange(percentToDate((x / rect.width) * 100, CONFLICT_START_DATE, TIMELINE_END));
+  }, [onDateChange]);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      dragging.current = true;
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    const onMove = (me: MouseEvent) => {
+      if (!trackRef.current || !dragging.current) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      const x = Math.max(0, Math.min(me.clientX - rect.left, rect.width));
+      onDateChange(percentToDate((x / rect.width) * 100, CONFLICT_START_DATE, TIMELINE_END));
+    };
+    const onUp = () => {
+      dragging.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [onDateChange]);
 
-      const onMove = (me: MouseEvent) => {
-        if (!trackRef.current || !dragging.current) return;
-        const rect = trackRef.current.getBoundingClientRect();
-        const x = Math.max(0, Math.min(me.clientX - rect.left, rect.width));
-        onDateChange(
-          percentToDate((x / rect.width) * 100, CONFLICT_START_DATE, TIMELINE_END)
-        );
-      };
-
-      const onUp = () => {
-        dragging.current = false;
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
-      };
-
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-    },
-    [onDateChange]
-  );
-
-  const btnBase =
-    'bg-transparent border border-electric/20 text-text px-2.5 py-0.5 rounded font-mono text-[12px] transition-all duration-150 cursor-pointer whitespace-nowrap hover:border-electric hover:text-electric';
+  const [hoveredYear, setHoveredYear] = useState<number | null>(null);
 
   return (
-    <Box className="h-[96px] bg-bg-card border-t border-electric/20 flex flex-col px-4 py-2 shrink-0 relative z-50">
-      <Box className="flex items-center gap-2.5 mb-1.5">
-        <Btn
-          className={cn(btnBase, isPlaying && 'border-gold text-gold')}
+    <div className="h-16 bg-gray-900/80 backdrop-blur-sm border-t border-cyan-400/30 flex items-center px-6 gap-4 shrink-0 relative">
+
+      {/* Date range label */}
+      <div className="text-cyan-400 text-sm font-mono whitespace-nowrap shrink-0">
+        OCT 2023 - {TIMELINE_END.getFullYear()}
+      </div>
+
+      {/* Play / Reset controls */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
           onClick={onPlayToggle}
+          className="w-8 h-8 bg-cyan-400/20 border border-cyan-400/40 rounded flex items-center justify-center hover:bg-cyan-400/30 transition-colors"
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
-          {isPlaying ? '⏸ PAUSE' : '▶ PLAY'}
-        </Btn>
-        <Btn
-          className={btnBase}
+          {isPlaying
+            ? <Pause className="w-3.5 h-3.5 text-cyan-400" />
+            : <Play className="w-3.5 h-3.5 text-cyan-400" />
+          }
+        </button>
+        <button
           onClick={() => onDateChange(CONFLICT_START_DATE)}
+          className="w-8 h-8 bg-gray-700/50 border border-gray-600/40 rounded flex items-center justify-center hover:bg-gray-600/50 transition-colors"
           aria-label="Reset"
         >
-          ↺ RESET
-        </Btn>
+          <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
+        </button>
         {SPEEDS.map((s) => (
-          <Btn
+          <button
             key={s}
-            className={cn(
-              'bg-transparent border border-electric/30 text-muted px-1.5 py-0.5 rounded font-mono text-[10px] transition-all duration-150 cursor-pointer',
-              playSpeed === s && 'border-electric text-electric'
-            )}
             onClick={() => onSpeedChange(s)}
+            className={`px-1.5 h-6 rounded font-mono text-[10px] border transition-colors ${
+              playSpeed === s
+                ? 'bg-cyan-400/20 border-cyan-400/60 text-cyan-400'
+                : 'bg-transparent border-gray-600/40 text-gray-500 hover:text-gray-300'
+            }`}
           >
             {s}×
-          </Btn>
+          </button>
         ))}
-        <Text className="font-mono text-[11px] text-muted ml-auto">
-          Day {dayNum} · {formatTimelineDate(selectedDate)} · {visibleCount} Fallen
-        </Text>
-      </Box>
+      </div>
 
-      <Box className="relative flex-1 flex flex-col justify-center">
-        <Box className="flex h-2 gap-px mb-1 rounded overflow-hidden">
-          {density.map((count, i) => (
-            <Box
-              key={i}
-              className="flex-1 rounded-[1px] transition-opacity duration-200"
-              style={{
-                background: `rgba(244,162,97,${0.1 + (count / maxDensity) * 0.9})`,
-                opacity: i / DENSITY_BUCKETS <= pct / 100 ? 1 : 0.3,
-              }}
-            />
-          ))}
-        </Box>
-
-        <Box
+      {/* Timeline track */}
+      <div className="flex-1 relative">
+        {/* Track */}
+        <div
           ref={trackRef}
-          className="relative h-1 bg-electric/15 rounded cursor-pointer"
+          className="h-1 bg-gray-700 rounded-full relative cursor-pointer"
           onClick={handleTrackClick}
         >
-          <Box
-            className="absolute left-0 top-0 h-full bg-gradient-to-r from-gold to-gold-fade rounded pointer-events-none"
+          {/* Progress fill */}
+          <div
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-400/50 to-orange-400/60 rounded-full pointer-events-none"
             style={{ width: `${pct}%` }}
           />
-          <Box
-            className="absolute top-1/2 w-3 h-3 bg-gold border-2 border-bg cursor-grab rotate-45 shadow-[0_0_8px_rgba(244,162,97,0.8)] hover:shadow-[0_0_16px_rgba(244,162,97,1)] transition-shadow z-10"
-            style={{
-              left: `${pct}%`,
-              transform: 'translate(-50%,-50%) rotate(45deg)',
-            }}
+
+          {/* Draggable handle */}
+          <div
+            className="absolute top-1/2 w-3 h-3 bg-orange-400 rounded-full glow-orange cursor-grab z-10 -translate-y-1/2 -translate-x-1/2"
+            style={{ left: `${pct}%` }}
             onMouseDown={handleMouseDown}
           />
-        </Box>
 
-        <Box className="relative h-4 mt-0.5">
-          {ticks
-            .filter((_, i) => i % 2 === 0)
-            .map((tick) => {
-              const tp = dateToPercent(tick.date, CONFLICT_START_DATE, TIMELINE_END);
-              return (
-                <Text
-                  key={tick.label}
-                  className="absolute top-0 font-mono text-[8px] text-muted opacity-60 whitespace-nowrap pointer-events-none -translate-x-1/2"
-                  style={{ left: `${tp}%` }}
-                >
-                  {tick.label}
-                </Text>
-              );
-            })}
-        </Box>
-      </Box>
-    </Box>
+          {/* Year markers */}
+          {DISPLAY_YEARS.map((year) => {
+            const yearDate = new Date(`${year}-01-01`);
+            const yPct = dateToPercent(yearDate, CONFLICT_START_DATE, TIMELINE_END);
+            if (yPct < 0 || yPct > 100) return null;
+            const isMemorial = MEMORIAL_YEARS.includes(year);
+            return (
+              <div
+                key={year}
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center"
+                style={{ left: `${yPct}%` }}
+                onMouseEnter={() => setHoveredYear(year)}
+                onMouseLeave={() => setHoveredYear(null)}
+              >
+                <div className={`w-2.5 h-2.5 rounded-full border-2 border-black z-10 transition-all ${
+                  isMemorial
+                    ? 'bg-orange-400 glow-orange'
+                    : 'bg-gray-500'
+                } ${hoveredYear === year ? 'scale-125' : ''}`} />
+                <div className={`text-[9px] mt-3 font-mono whitespace-nowrap transition-colors ${
+                  hoveredYear === year ? 'text-cyan-400' : 'text-gray-500'
+                }`}>
+                  {year}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Status label */}
+        <div className="text-[9px] text-cyan-400 mt-5 text-center font-mono tracking-widest">
+          DAY {dayNum} · {formatTimelineDate(selectedDate)} · {visibleCount} FALLEN
+        </div>
+      </div>
+    </div>
   );
 };

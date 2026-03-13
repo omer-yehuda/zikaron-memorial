@@ -7,14 +7,14 @@ describe('Header', () => {
     render(
       <Header totalFallen={150} searchQuery="" onSearchChange={() => {}} />
     );
-    expect(screen.getByText('זיכרון')).toBeTruthy();
+    expect(screen.getAllByText('זיכרון').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders ZIKARON subtitle', () => {
+  it('renders Hebrew subtitle', () => {
     render(
       <Header totalFallen={150} searchQuery="" onSearchChange={() => {}} />
     );
-    expect(screen.getByText(/ZIKARON/)).toBeTruthy();
+    expect(screen.getByText('לזכר חללי צה״ל ישראל')).toBeTruthy();
   });
 
   it('has a search input', () => {
