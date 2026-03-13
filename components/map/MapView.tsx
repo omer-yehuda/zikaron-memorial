@@ -112,7 +112,6 @@ export const MapView = ({ soldiers, selectedSoldier, onSoldierSelect }: MapViewP
                     <div className="popup-rank">{soldier.rank_en}{soldier.rank_en && ' · '}{soldier.unit}</div>
                     <div className="popup-date">{formatDateEnglish(soldier.date_of_fall)}</div>
                     <div className="popup-location">📍 {soldier.location_name}</div>
-                    <a href={`/soldiers/${soldier.id}`} className="popup-link">לפרופיל המלא →</a>
                   </div>
                 </Popup>
               </Marker>
