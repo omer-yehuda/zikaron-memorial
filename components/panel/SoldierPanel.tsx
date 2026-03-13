@@ -1,177 +1,74 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import type { Soldier, SoldierStats, UnitBranch } from '@/lib/types';
-import { BRANCHES } from '@/lib/constants';
-import { SoldierCard } from './SoldierCard';
+import type { Soldier } from '@/lib/types';
+import { BRANCH_LABELS } from '@/lib/constants';
 
 interface SoldierPanelProps {
   soldiers: Soldier[];
-  selectedSoldier: Soldier | null;
-  onSoldierSelect: (s: Soldier) => void;
-  stats: SoldierStats;
-  branchFilters: Set<UnitBranch>;
-  onBranchToggle: (b: UnitBranch) => void;
+  selected: Soldier | null;
+  onSelect: (s: Soldier) => void;
 }
 
-const TABS = ['OPERATIONAL MEMORIAL', 'LIVE DATA FEED'] as const;
-type Tab = (typeof TABS)[number];
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
-export const SoldierPanel = ({
-  soldiers,
-  selectedSoldier,
-  onSoldierSelect,
-  stats,
-  branchFilters,
-  onBranchToggle,
-}: SoldierPanelProps) => {
-  const [activeTab, setActiveTab] = useState<Tab>('OPERATIONAL MEMORIAL');
-  const selectedRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (selectedRef.current) {
-      selectedRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [selectedSoldier?.id]);
-
+export default function SoldierPanel({ soldiers, selected, onSelect }: SoldierPanelProps) {
   return (
-    <aside className="w-80 bg-gray-900/50 backdrop-blur-sm border-r border-cyan-400/30 flex flex-col overflow-hidden shrink-0">
-
-      {/* Tab navigation */}
-      <div className="flex border-b border-cyan-400/30 shrink-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 px-2 py-2.5 text-[10px] font-medium tracking-wide transition-colors font-heebo ${
-              activeTab === tab
-                ? 'bg-cyan-400/20 text-cyan-400 border-b-2 border-cyan-400'
-                : 'text-gray-400 hover:text-cyan-400'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+    <aside className="w-80 flex flex-col bg-gray-900/50 backdrop-blur-sm border-r border-cyan-400/30 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-cyan-400/20 flex items-center justify-between">
+        <span className="text-xs font-mono text-cyan-400 tracking-widest">MEMORIAL ROLL</span>
+        <span className="text-xs text-gray-500 font-mono">{soldiers.length} RECORDS</span>
       </div>
 
-      {/* OPERATIONAL MEMORIAL tab */}
-      {activeTab === 'OPERATIONAL MEMORIAL' && (
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-          <div className="flex items-center justify-between mb-1 shrink-0">
-            <span className="text-[10px] font-mono text-cyan-400 tracking-[0.2em] uppercase">
-              Fallen Soldiers
-            </span>
-            <span className="font-mono text-sm font-bold text-orange-400">
-              {soldiers.length.toLocaleString()}
-            </span>
-          </div>
+      {/* List */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {soldiers.length === 0 && (
+          <div className="p-6 text-center text-gray-500 text-sm">אין תוצאות</div>
+        )}
+        {soldiers.map((soldier) => {
+          const branchMeta = BRANCH_LABELS[soldier.branch];
+          const isSelected = selected?.id === soldier.id;
+          return (
+            <button
+              key={soldier.id}
+              onClick={() => onSelect(soldier)}
+              className={`w-full text-right p-3 border-b border-gray-800/50 flex items-center gap-3 transition-all hover:bg-cyan-400/5 hover:border-cyan-400/30 cursor-pointer ${
+                isSelected ? 'bg-cyan-400/10 border-l-2 border-l-cyan-400' : ''
+              }`}
+            >
+              {/* Photo placeholder */}
+              <div className="w-10 h-10 rounded-full border border-cyan-400/30 bg-gray-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {soldier.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={soldier.photo_url} alt={soldier.name_en} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-lg text-gray-600">✡</span>
+                )}
+              </div>
 
-          {soldiers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center flex-1 gap-2 py-12 text-center">
-              <span className="font-he text-lg text-gray-500">אין חיילים בטווח זה</span>
-              <span className="text-xs text-gray-600 font-heebo">No soldiers in this time range</span>
-            </div>
-          ) : (
-            soldiers.map((soldier) => (
-              <SoldierCard
-                key={soldier.id}
-                soldier={soldier}
-                isSelected={selectedSoldier?.id === soldier.id}
-                onSelect={onSoldierSelect}
-                cardRef={selectedSoldier?.id === soldier.id ? selectedRef : undefined}
-              />
-            ))
-          )}
-        </div>
-      )}
-
-      {/* LIVE DATA FEED tab */}
-      {activeTab === 'LIVE DATA FEED' && (
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 font-heebo">
-
-          {/* Days counter */}
-          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 text-center">
-            <div className="font-mono text-4xl font-bold text-red-400 leading-none">
-              {stats.daysSinceStart}
-            </div>
-            <div className="text-[10px] text-red-400/60 font-mono tracking-widest mt-1.5 uppercase">
-              Days Since Oct 7
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="bg-gray-800/40 border border-cyan-400/20 rounded-lg p-3">
-            <div className="text-[9px] font-mono text-cyan-400/70 tracking-[0.22em] uppercase mb-3">
-              Statistics
-            </div>
-            <div className="space-y-2">
-              {[
-                { label: 'Total Fallen', value: stats.total, cls: 'text-orange-400 text-lg font-bold' },
-                { label: 'Cities', value: stats.citiesCount, cls: 'text-white text-sm font-bold' },
-                { label: 'Units', value: stats.unitsCount, cls: 'text-white text-sm font-bold' },
-              ].map(({ label, value, cls }) => (
-                <div key={label} className="flex justify-between items-center">
-                  <span className="text-[11px] text-gray-400">{label}</span>
-                  <span className={`font-mono ${cls}`}>{value.toLocaleString()}</span>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-white truncate">{soldier.name_he}</div>
+                <div className="text-xs text-gray-400 truncate">{soldier.rank_en} · {soldier.unit_en}</div>
+                <div className="text-xs font-mono mt-0.5 flex items-center gap-2">
+                  <span style={{ color: branchMeta?.color }} className="text-[10px] tracking-wide">
+                    {branchMeta?.en?.toUpperCase()}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          {/* Branch filters */}
-          <div className="bg-gray-800/40 border border-cyan-400/20 rounded-lg p-3 flex-1">
-            <div className="text-[9px] font-mono text-cyan-400/70 tracking-[0.22em] uppercase mb-3">
-              Branch Filter
-            </div>
-            <div className="space-y-1.5">
-              {BRANCHES.map((branch) => {
-                const active = branchFilters.has(branch.id);
-                const count = stats.byBranch[branch.id] ?? 0;
-                const pct = Math.round((count / Math.max(...Object.values(stats.byBranch), 1)) * 100);
-                return (
-                  <label
-                    key={branch.id}
-                    className={`flex flex-col gap-1.5 p-2 rounded-md border cursor-pointer transition-all ${
-                      active ? 'border-white/10 bg-white/5' : 'border-transparent hover:bg-white/3'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={active}
-                        onChange={() => onBranchToggle(branch.id)}
-                      />
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0 transition-all"
-                        style={{
-                          background: active ? branch.color : 'rgba(107,114,128,0.4)',
-                          boxShadow: active ? `0 0 6px ${branch.color}80` : 'none',
-                        }}
-                      />
-                      <span className={`text-[12px] flex-1 select-none ${active ? 'text-white' : 'text-gray-400'}`}>
-                        {branch.label_en}
-                      </span>
-                      <span className={`font-mono text-[11px] font-bold ${active ? 'text-white' : 'text-gray-600'}`}>
-                        {count}
-                      </span>
-                    </div>
-                    <div className="h-1 rounded-full bg-white/5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${pct}%`,
-                          background: active ? branch.color : 'rgba(107,114,128,0.2)',
-                        }}
-                      />
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+              {/* Date */}
+              <div className="text-right flex-shrink-0">
+                <div className="text-xs font-mono text-cyan-400">{formatDate(soldier.date_of_death)}</div>
+                <div className="w-2 h-2 bg-orange-400 rounded-full mx-auto mt-1" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </aside>
   );
-};
+}
