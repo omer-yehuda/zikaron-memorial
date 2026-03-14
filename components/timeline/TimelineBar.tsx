@@ -40,7 +40,7 @@ export default function TimelineBar({ minDate, maxDate, currentDate, onChange }:
 
   const reset = () => {
     setPlaying(false);
-    onChange(maxDate);
+    onChange(minDate);
   };
 
   const togglePlay = () => setPlaying((p) => !p);
@@ -48,7 +48,7 @@ export default function TimelineBar({ minDate, maxDate, currentDate, onChange }:
   useEffect(() => {
     if (!playing) return;
     const timer = setTimeout(() => {
-      const next = valueToDate(Math.min(value + 0.5, 100), minDate, maxDate);
+      const next = valueToDate(Math.min(value + 2, 100), minDate, maxDate);
       onChange(next);
       if (value >= 99.5) setPlaying(false);
     }, 300);
