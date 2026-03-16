@@ -11,8 +11,8 @@
     "setup:dynamodb": "tsx scripts/setup-dynamodb.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1008.0",
-    "@aws-sdk/lib-dynamodb": "^3.1008.0",
+    "@aws-sdk/client-dynamodb": "^3.1009.0",
+    "@aws-sdk/lib-dynamodb": "^3.1009.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
